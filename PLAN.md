@@ -78,8 +78,9 @@ used only as comparison oracles (never committed if made by MS Project, per the 
 
 ### Layout
 
-- **Left: project explorer.** Shows the project folder as it is on disk: schedule, backlog,
-  board, `docs\`, attachments. Collapses to an icon rail (toggle) to give the Gantt full width.
+- **Left sidebar with switchable panels** (like Obsidian's): an icon strip picks the panel, and
+  the whole sidebar collapses to that strip (toggle) to give the Gantt full width. See
+  [Sidebar panels](#sidebar-panels).
 - **Top of centre: document tabs.** Several items open at once; tabs can be split side by side
   (e.g. Gantt next to the sprint plan or risk register).
 - **Centre: the open item** (Gantt, board, document, sheet…).
@@ -92,6 +93,31 @@ used only as comparison oracles (never committed if made by MS Project, per the 
 | Document | Template-filling tools, "Edit in WordCraft", "Import into project" |
 | Sheet | GridCraft's normal ribbon |
 
+### Sidebar panels
+
+Each panel is its own tab in the left sidebar, chosen from the icon strip; panels can be
+reordered, hidden, or stacked (two panels split vertically), as in Obsidian.
+
+**From Obsidian**
+
+| Panel | What it does in PlanCraft |
+|---|---|
+| Explorer | The project folder as it is on disk: schedule, backlog, board, `docs\`, attachments |
+| Search | Full-text search across tasks, notes, stories, risks and documents in the project; results open the item |
+| Bookmarks | Pinned items: a task, a view (e.g. "Critical path, next 2 weeks"), a document, a filter |
+
+**Project-specific suggestions**
+
+| Panel | What it does |
+|---|---|
+| Outline / WBS | The task tree; click to jump to a task in whatever view is open; drag to re-parent |
+| Filters / saved views | Saved filters and groupings (critical, late, by resource, this sprint) |
+| Recent | Recently opened items and recently changed tasks, including changes synced from other devices |
+| Sync | Which devices have contributed changes and when, plus any document lock notes |
+
+A right-hand sidebar (Obsidian has one for outline and properties) could hold the **Inspector**:
+properties of the selected task, story or resource. To be decided.
+
 ### Views inside a schedule tab
 
 A schedule tab has a small view switcher in its corner (Affinity-style: same data, different
@@ -100,7 +126,7 @@ Calendar, Kanban.
 
 ### Phone and tablet
 
-- Explorer becomes a flyout (as in RevuCraft's phone layout); tabs become a switcher.
+- The sidebar (all its panels) becomes a flyout (as in RevuCraft's phone layout); tabs become a switcher.
 - Same layout scales from the Pixel to the Galaxy Tab and desktop.
 
 ### CraftStudio path
@@ -256,6 +282,8 @@ separate task graph is wanted), plus GridCraft itself.
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
 - [x] Interface layout: Obsidian-style shell (decided 2026-10-27)
+- [x] Left sidebar with switchable panels like Obsidian: Explorer, Search, Bookmarks (decided 2026-10-27)
+- [ ] Which project-specific panels to include (Outline/WBS, Filters, Recent, Sync), and right sidebar Inspector yes/no
 - [ ] Explorer details: what it shows beyond files (e.g. virtual items like Backlog, Sprints), and default split layouts
 - [ ] Final template list, and which templates ship in the first version
 - [ ] Template field syntax (WordCraft merge fields vs content controls) and how repeating tables are marked
