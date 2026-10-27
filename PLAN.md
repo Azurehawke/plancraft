@@ -106,7 +106,7 @@ reordered, hidden, or stacked (two panels split vertically), as in Obsidian.
 | Search | Full-text search across tasks, notes, stories, risks and documents in the project; results open the item |
 | Bookmarks | Pinned items: a task, a view (e.g. "Critical path, next 2 weeks"), a document, a filter |
 
-**Project-specific suggestions**
+**Project-specific panels** (decided 2026-10-27)
 
 | Panel | What it does |
 |---|---|
@@ -115,8 +115,9 @@ reordered, hidden, or stacked (two panels split vertically), as in Obsidian.
 | Recent | Recently opened items and recently changed tasks, including changes synced from other devices |
 | Sync | Which devices have contributed changes and when, plus any document lock notes |
 
-A right-hand sidebar (Obsidian has one for outline and properties) could hold the **Inspector**:
-properties of the selected task, story or resource. To be decided.
+**Right sidebar: Inspector** (decided 2026-10-27). Like Obsidian's properties pane: shows and
+edits the properties of the selected task, story, resource or document; collapsible like the
+left sidebar, and part of the flyout layout on phone and tablet.
 
 ### Views inside a schedule tab
 
@@ -126,7 +127,7 @@ Calendar, Kanban.
 
 ### Phone and tablet
 
-- The sidebar (all its panels) becomes a flyout (as in RevuCraft's phone layout); tabs become a switcher.
+- The sidebars (left panels and Inspector) become flyouts (as in RevuCraft's phone layout); tabs become a switcher.
 - Same layout scales from the Pixel to the Galaxy Tab and desktop.
 
 ### CraftStudio path
@@ -255,7 +256,7 @@ separate task graph is wanted), plus GridCraft itself.
 | 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
 | 1 | `project-model` + `project-sync` + folder format | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
-| 3 | Obsidian-style shell (explorer, tabs, per-tab ribbon), task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
+| 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
@@ -283,7 +284,7 @@ separate task graph is wanted), plus GridCraft itself.
 - [ ] Standalone app vs future CraftStudio module
 - [x] Interface layout: Obsidian-style shell (decided 2026-10-27)
 - [x] Left sidebar with switchable panels like Obsidian: Explorer, Search, Bookmarks (decided 2026-10-27)
-- [ ] Which project-specific panels to include (Outline/WBS, Filters, Recent, Sync), and right sidebar Inspector yes/no
+- [x] Project-specific panels: Outline/WBS, Filters / saved views, Recent, Sync; right sidebar Inspector (decided 2026-10-27)
 - [ ] Explorer details: what it shows beyond files (e.g. virtual items like Backlog, Sprints), and default split layouts
 - [ ] Final template list, and which templates ship in the first version
 - [ ] Template field syntax (WordCraft merge fields vs content controls) and how repeating tables are marked
