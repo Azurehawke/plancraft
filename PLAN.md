@@ -3,7 +3,7 @@
 > **Status:** planning only. No code yet. Working name "PlanCraft" until a final name is chosen.
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
-> **Last updated:** 2026-10-26
+> **Last updated:** 2026-10-27
 
 ## Goal
 
@@ -86,6 +86,7 @@ M:\Jobs\Acme-Network\Acme-Network.plan\
         laptop.am            # this device's CRDT changes (only the laptop writes it)
         surface-1.am
         galaxy-tab.am
+    docs\                    # .docx documents made from templates (+ lock notes)
     attachments\             # photos, linked PDFs (optional)
 ```
 
@@ -101,6 +102,73 @@ merge speed on a few thousand tasks, Android build, and how history is kept.
 
 The same pattern could later be backported to RevuCraft if it uses one shared file.
 
+## Documents and templates
+
+PlanCraft owns the project data; documents are typed in WordCraft (which reads and writes
+.docx and already has templates, merge fields and mail merge). .docx is the bridge between them.
+
+### Data flow
+
+- **Project → document.** Creating a document from a template fills its fields from the live
+  project: name, sponsor, dates, milestones, team, including repeating rows (e.g. a milestone
+  table). The narrative is then written in WordCraft.
+- **Document → project.** Tables with known headings are read back into the project with
+  "Import into project": a WBS table becomes tasks, a user-story table becomes backlog items,
+  a risk table becomes the risk register.
+- **Where content lives.** Narrative documents (charter, scope, retrospective notes) are
+  written in WordCraft. Long lists that are sorted and filtered (backlog, risk register,
+  stakeholders) live in PlanCraft's grid, with a template that prints or exports them as a document.
+
+### Template set (first draft)
+
+**Waterfall**
+- Project charter
+- Scope statement / requirements
+- WBS and WBS dictionary
+- Stakeholder register and RACI matrix
+- Communication plan
+- Risk register
+- Change request form
+- Phase gate / sign-off
+- Status report
+- Closeout and lessons learned
+
+**Agile / Scrum**
+- Product vision
+- Product backlog (epics → user stories)
+- User story card ("As a… I want… so that…", plus acceptance criteria)
+- Definition of Ready and Definition of Done
+- Sprint planning (goal and committed items)
+- Daily stand-up log
+- Sprint review
+- Sprint retrospective
+- Release plan
+
+**Shared:** meeting minutes, status report (variants for each method).
+
+**Job-specific** (same mechanism): site survey, statement of work, punch list,
+handover / as-built acceptance.
+
+### Agile data model
+
+Scrum templates need agile work modelled in the app, not only a Gantt:
+
+- Backlog with epics and user stories, story points, acceptance criteria
+- Sprints (goal, dates, committed items)
+- Kanban board view
+- Burndown / burnup charts (through the `chart` crate)
+- **Hybrid projects:** one project can mix both methods, e.g. a waterfall install schedule where
+  one phase runs as sprints and shows on the Gantt as a summary task.
+
+### Storage and sync
+
+- Templates ship with the app; a project's documents live in `docs\` inside the project folder
+  and sync like everything else.
+- A .docx is a single file, so the per-device merge approach does not apply: two devices editing
+  the same document still produce Syncthing conflict copies. Documents are usually written by one
+  person at a time, so a lock note in the folder (e.g. "open on Surface-1"), shown as a warning
+  when another device opens the document, should be enough.
+
 ## Reference projects
 
 GridCraft's rules forbid copying GPL/AGPL/LGPL code, and PlanCraft keeps GridCraft's
@@ -112,6 +180,8 @@ MIT/Apache licence. These are **behaviour references** (study, observe, test aga
 | GanttProject (`bardsoftware/ganttproject`) | GPL | Gantt interaction, baselines, resource charts |
 | TaskJuggler (`taskjuggler/TaskJuggler`) | GPL | Scheduling and resource leveling |
 | MPXJ (`joniles/mpxj`) | LGPL-2.1 | MS Project field mapping; reads .mpp and ~20 other formats, writes MSPDI. Use as a test oracle / external converter only |
+
+More reference repos to be added after further research.
 
 **Code that can be used directly** (permissive): Automerge or Loro (sync), `petgraph` (if a
 separate task graph is wanted), plus GridCraft itself.
@@ -126,6 +196,7 @@ separate task graph is wanted), plus GridCraft itself.
 | 3 | Task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
+| 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
 | 6 | MSPDI import/export; XLSX and PDF reports | A project round-trips through MS Project XML |
 | 7 | Resource leveling, Network Diagram | — |
 | 8 | Android build (Craft port conventions: self-update from repo, phone layout) | Runs on the Galaxy Tab and Pixel |
@@ -148,3 +219,8 @@ separate task graph is wanted), plus GridCraft itself.
 - [ ] Integration with RevuCraft (link tasks to drawing sheets, field photos, site notes)?
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
+- [ ] Final template list, and which templates ship in the first version
+- [ ] Template field syntax (WordCraft merge fields vs content controls) and how repeating tables are marked
+- [ ] Which document tables import back into the project, and their required headings
+- [ ] Agile model scope (story points, velocity, Kanban WIP limits) and how hybrid projects show on the Gantt
+- [ ] Lock-note behaviour for documents (warn only, or read-only on other devices)
