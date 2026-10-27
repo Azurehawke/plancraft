@@ -72,6 +72,42 @@ used only as comparison oracles (never committed if made by MS Project, per the 
 - **Network Diagram, Resource Sheet, Task Usage, Resource Usage, Tracking Gantt, Calendar.**
 - **Phone/tablet layout:** follows the conventions of the other Craft Android ports.
 
+## Interface
+
+**Decided (2026-10-27): Obsidian-style shell**, with ribbons that change by the kind of tab in focus.
+
+### Layout
+
+- **Left: project explorer.** Shows the project folder as it is on disk: schedule, backlog,
+  board, `docs\`, attachments. Collapses to an icon rail (toggle) to give the Gantt full width.
+- **Top of centre: document tabs.** Several items open at once; tabs can be split side by side
+  (e.g. Gantt next to the sprint plan or risk register).
+- **Centre: the open item** (Gantt, board, document, sheet…).
+- **Ribbon above the centre pane, by tab type:**
+
+| Tab type | Ribbon |
+|---|---|
+| Schedule | Task, Resource, Project, View tabs (MS Project-style) |
+| Board / backlog | Sprint and story tools |
+| Document | Template-filling tools, "Edit in WordCraft", "Import into project" |
+| Sheet | GridCraft's normal ribbon |
+
+### Views inside a schedule tab
+
+A schedule tab has a small view switcher in its corner (Affinity-style: same data, different
+toolbar): Gantt, Tracking Gantt, Network Diagram, Resource Sheet, Task Usage, Resource Usage,
+Calendar, Kanban.
+
+### Phone and tablet
+
+- Explorer becomes a flyout (as in RevuCraft's phone layout); tabs become a switcher.
+- Same layout scales from the Pixel to the Galaxy Tab and desktop.
+
+### CraftStudio path
+
+The same shell could later hold drawings, schedules and documents as different tab types, which
+is close to the mode switching planned for CraftStudio.
+
 ## Multi-device design
 
 **Problem.** If two devices edit one file and Syncthing syncs it, Syncthing keeps one and writes
@@ -193,7 +229,7 @@ separate task graph is wanted), plus GridCraft itself.
 | 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
 | 1 | `project-model` + `project-sync` + folder format | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
-| 3 | Task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
+| 3 | Obsidian-style shell (explorer, tabs, per-tab ribbon), task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
@@ -219,6 +255,8 @@ separate task graph is wanted), plus GridCraft itself.
 - [ ] Integration with RevuCraft (link tasks to drawing sheets, field photos, site notes)?
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
+- [x] Interface layout: Obsidian-style shell (decided 2026-10-27)
+- [ ] Explorer details: what it shows beyond files (e.g. virtual items like Backlog, Sprints), and default split layouts
 - [ ] Final template list, and which templates ship in the first version
 - [ ] Template field syntax (WordCraft merge fields vs content controls) and how repeating tables are marked
 - [ ] Which document tables import back into the project, and their required headings
