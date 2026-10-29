@@ -5,7 +5,7 @@
 > the PlanCraft planning session. Reply by editing this file (add a dated note under
 > [Decisions and replies](#decisions-and-replies)) rather than `PLAN.md`, so the two sessions
 > never edit the same file.
-> **Last updated:** 2026-10-28 (RevuCraft build 207)
+> **Last updated:** 2026-10-28 (RevuCraft build 207; live dashboard added)
 >
 > This answers the open decision in `PLAN.md`: "Integration with RevuCraft (link tasks to
 > drawing sheets, field photos, site notes)?"
@@ -98,7 +98,54 @@ The RevuCraft session's recommendation: **option 2, with the link format in a sh
 (option 3)**. The sidecar is one function on the RevuCraft side and keeps PlanCraft free of PDF
 parsing.
 
-### 4. Sync
+### 4. Live dashboard (Steve's request, 2026-10-28)
+
+Steve wants:
+
+- Ticking off a punch item or task anywhere is reflected in the `.plan` and everywhere else that
+  shows it.
+- PlanCraft produces **output that updates as the plan changes**, probably HTML laid out for
+  letter-size paper.
+- That output has a **summary sheet** that can be **placed on a sheet of a RevuCraft PDF**, and is
+  interactive there too: completing a punch item updates the placed dashboard.
+- The whole module is **optional per PDF**.
+
+**Constraint.** A PDF page cannot hold a live web page, and RevuCraft has no web view (Rust and
+egui only). So the placed summary is not the HTML itself: RevuCraft draws the same content
+natively, as it already draws a live, placed view of a linked workbook (Place table, Workbook
+box).
+
+**Design.**
+
+1. **One dashboard description, two renderers.** A small, versioned description of the summary
+   (sections, figures, tables, which items each row stands for, page size) is produced from the
+   plan and the field data. PlanCraft renders it to the letter-size HTML report; RevuCraft
+   renders it as a placed panel on a sheet. Both read the same description, so they never drift.
+   The description and its builder are the natural first piece of a shared crate (option 3 in
+   [Progress from the field](#3-progress-from-the-field)).
+2. **Optional per PDF.** A PDF opts in by linking a `.plan` in RevuCraft's Links box (as with
+   drawings and workbooks), then placing the summary on a sheet. Unlinked PDFs carry nothing extra.
+3. **Live.** RevuCraft already watches linked files: when the `.plan` changes (PlanCraft saved, or
+   Syncthing delivered another device's change file), the panel redraws within seconds.
+4. **Interactive in RevuCraft.** Tapping a row goes to its task (in PlanCraft) or punch item (on
+   the sheet). Ticking a punch item, on the sheet or in the panel, updates the panel, RevuCraft's
+   Punch list and Markups list, and (through `markups.json`, below) the plan.
+5. **Sent or printed.** The PDF keeps the panel's last drawn appearance, stamped "as of
+   <date and time>", so it prints and reads correctly without the job folder.
+
+**Who writes what (recommended).** Each app writes only its own data:
+
+- RevuCraft owns punch items: in the PDF, mirrored to `<drawing>/markups.json` on every save.
+- PlanCraft owns tasks: it reads `markups.json`, and a task linked to punch items takes their
+  status (all Closed = done; % complete rolls up from them).
+- Nothing writes into the other app's files, so the per-device CRDT files are never touched by
+  RevuCraft and Syncthing never sees two writers on one file.
+
+Alternative, later: RevuCraft writes its own device change file into the `.plan`'s `devices\`
+folder (it becomes another "device"). More direct, but it must wait until Automerge or Loro is
+chosen, and it puts PlanCraft's format inside RevuCraft.
+
+### 5. Sync
 
 PlanCraft's "each device writes its own change file" design is also what RevuCraft would need
 for several devices editing one drawing. If PlanCraft settles on Automerge or Loro, RevuCraft
@@ -113,6 +160,14 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
 - [ ] Which progress signals drive % complete: punch status, checklists, both, or manual only?
 - [ ] Does a punch item create a task, or only link to one?
 - [ ] Spaces as a PlanCraft field (location) on tasks?
+- [ ] Dashboard description: what goes on the summary sheet (milestones, % complete, critical
+      path, open punch items by space or assignee, overdue items, recent photos)?
+- [ ] Dashboard description format and owner (shared crate in craft-libs or a new repo; JSON
+      or a Rust type serialised with serde)?
+- [ ] HTML output: one file per report regenerated on save, or served live by PlanCraft?
+- [ ] Ticking a *task* (not a punch item) in RevuCraft's panel: allowed, and if so how does it
+      reach the plan without RevuCraft writing the `.plan` (a request file PlanCraft applies, or
+      the "RevuCraft as a device" alternative)?
 - [ ] Should CraftStudio's modes (PLAN.md "CraftStudio path") replace this cross-app linking later?
 
 ## Decisions and replies
