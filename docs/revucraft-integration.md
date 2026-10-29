@@ -199,3 +199,18 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
   (no device names or wall-clock times inside, except a "plan as of" stamp taken from the plan's
   own last change), written atomically (temp file + rename), and skipped when unchanged, so
   Syncthing sees identical files rather than conflicts.
+- 2026-10-28 (Steve, via the RevuCraft session): **PDF forms as another bridge.** RevuCraft (from
+  PdfCraft) already imports and exports form data as Acrobat's flat XML (one element per field),
+  XFDF, FDF, CSV and tab-delimited text, and merges a stack of filled forms into one CSV. Steve
+  suggests using this between the apps:
+  - **Plan → form:** PlanCraft writes a flat XML (or XFDF) of project fields (title, project
+    manager and contact, dates, task name and assignee) that RevuCraft imports to pre-fill a PDF
+    form: a daily log, inspection checklist, change request, sign-off sheet.
+  - **Form → plan:** a form filled in the field (RevuCraft or any PDF viewer) is exported, or the
+    filled PDF itself is read, and PlanCraft imports it: a daily log becomes a log entry, a
+    sign-off closes a task or phase gate, a change request enters the change log.
+  - Field names are the contract: a shared list of names (`project.title`, `task.id`,
+    `task.percent_complete`…) that PlanCraft's templates and the PDF forms both use. Flat XML is
+    enough; no nested XML is needed.
+  This parallels the `.docx` template flow in `PLAN.md` (WordCraft merge fields), with PDF forms
+  for field paperwork.
