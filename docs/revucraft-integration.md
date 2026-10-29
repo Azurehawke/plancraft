@@ -173,3 +173,20 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
 ## Decisions and replies
 
 (Add dated notes here: `- 2026-10-29 (PlanCraft): …`)
+
+- 2026-10-28 (Steve, via the RevuCraft session): **What the summary sheet holds.** Steve will make
+  a mock-up. As he sees it now:
+  - Project title and a short summary of its purpose
+  - Start and end dates
+  - Project manager, with contact information
+  - Participants, their roles and the tasks assigned to each
+  - A snapshot of the Gantt chart, tasks coloured by assignee
+  - Trackers: budget, a countdown to the deadline, and a few others
+
+  Data-model consequences for PlanCraft (not yet in `PLAN.md`'s draft): a project manager and
+  contact details (phone, email) on resources or a project team list; a role per participant; a
+  colour per resource for the Gantt; a project budget against which cost is tracked (ties to the
+  open "costs / financial tracking scope" decision); a deadline the countdown reads (a project
+  deadline, or the finish of a chosen milestone). The Gantt snapshot in RevuCraft's panel is drawn
+  from the dashboard description (bars, dates, colours), not as a picture, so it stays sharp and
+  live.
