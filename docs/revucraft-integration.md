@@ -190,3 +190,12 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
   deadline, or the finish of a chosen milestone). The Gantt snapshot in RevuCraft's panel is drawn
   from the dashboard description (bars, dates, colours), not as a picture, so it stays sharp and
   live.
+- 2026-10-28 (Steve, via the RevuCraft session): **HTML output lives in its own file**, rewritten
+  when the plan changes, the way RevuCraft watches linked DWG/DXF files. Proposed shape: PlanCraft
+  writes two files in the project folder, e.g. `reports/summary.html` (the letter-size report, for
+  people) and `reports/summary.json` (the dashboard description, for RevuCraft); RevuCraft links and
+  watches the `.json`, never parses the HTML. Rewritten whenever the merged plan changes. Because
+  several devices may each regenerate them, the content must be deterministic from the merged plan
+  (no device names or wall-clock times inside, except a "plan as of" stamp taken from the plan's
+  own last change), written atomically (temp file + rename), and skipped when unchanged, so
+  Syncthing sees identical files rather than conflicts.
