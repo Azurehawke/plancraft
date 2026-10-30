@@ -268,6 +268,41 @@ the messages that matter to a project are brought into it.
 | meli | GPL-3.0-or-later | Full-featured terminal client: threading, search, account handling |
 | Penguin Mail | GPL-3.0 | Native Rust desktop client with mail, calendar, contacts, OpenPGP: UI ideas |
 
+## Obsidian plugin
+
+**Status: later phase (2026-10-29).** PlanCraft should also run as an Obsidian plugin, like the
+GridCraft plugin (`Azurehawke/obsidian-gridcraft`): the engine compiled to WebAssembly with an
+Obsidian-native UI, installed through BRAT.
+
+### How it works
+
+- Obsidian supplies the shell: file explorer, search, bookmarks, tabs.
+- The plugin adds the project views as Obsidian view types: Gantt, board/backlog, resource sheet,
+  Inspector.
+- **Embeds:** `![[Acme.plan#Gantt]]`, `#Dashboard` etc. show a live, read-only view in a note;
+  editing happens in the tab (same rule as the GridCraft plugin).
+
+### Design rules (apply from phase 1, so the plugin is not a rewrite)
+
+1. **Core crates stay UI-free.** `project-model`, `schedule` and `project-sync` must not depend on
+   egui or any UI, so they compile to WebAssembly. A wasm build check runs in CI from phase 1.
+2. **Sync library runs in WebAssembly.** Automerge and Loro both have wasm/JS builds; test this
+   as part of choosing between them.
+3. **Each project has an entry file.** Obsidian opens files by extension, not folders, so a project
+   needs a file such as `Acme.plan\Acme.plancraft` (or a `.plancraft` file next to the folder).
+   This also settles the folder extension and layout decision.
+4. **Device ID is never stored in the vault.** Each install writes its own change file, so it needs
+   a stable device ID. The plugin's `data.json` lives in `.obsidian\` and syncs with Syncthing, so
+   the ID goes in local storage that does not sync; otherwise two devices would share an ID and
+   overwrite each other's changes.
+
+### What stays in the app
+
+- **Mail:** Obsidian mobile cannot open mail-server connections. The plugin may show filed `.eml`
+  messages; fetching and sending stay in the app.
+- **.docx documents:** open in WordCraft through "Open in default app". Markdown versions of the
+  templates suit the plugin and could be filled from the project inside Obsidian.
+
 ## Reference projects
 
 GridCraft's rules forbid copying GPL/AGPL/LGPL code, and PlanCraft keeps GridCraft's
@@ -291,7 +326,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | # | Phase | Done when |
 |---|---|---|
 | 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
-| 1 | `project-model` + `project-sync` + folder format | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
+| 1 | `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
@@ -301,6 +336,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 7 | Resource leveling, Network Diagram | — |
 | 7b | Project mail (scope to be decided) | A message filed to a project, linked to a task, and visible on another device |
 | 8 | Android build (Craft port conventions: self-update from repo, phone layout) | Runs on the Galaxy Tab and Pixel |
+| 8b | Obsidian plugin (wasm engine, Obsidian-native views, read-only embeds; BRAT) | A project opens in an Obsidian tab and embeds in a note, on desktop and mobile |
 | 9 | Optional: module inside CraftStudio | — |
 
 ## Upstream policy
@@ -313,8 +349,8 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 
 - [ ] Final app name and repo name
 - [ ] How to bring GridCraft in: import its full history (keeps upstream merges easy) or vendor its crates?
-- [ ] Automerge vs Loro
-- [ ] Project folder extension and layout
+- [ ] Automerge vs Loro (must also run in WebAssembly for the Obsidian plugin)
+- [ ] Project folder extension, layout and entry-file name (e.g. `.plancraft`)
 - [ ] Which MS Project features matter for the first usable version (scope of phase 3)
 - [ ] Desktop-first, or Android in parallel from the start?
 - [ ] Integration with RevuCraft (link tasks to drawing sheets, field photos, site notes)?
@@ -330,4 +366,6 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 - [ ] Agile model scope (story points, velocity, Kanban WIP limits) and how hybrid projects show on the Gantt
 - [ ] Lock-note behaviour for documents (warn only, or read-only on other devices)
 - [ ] Project mail: how it looks and works; project mail only, or a fuller client (inbox, folders, calendar)?
+- [x] Obsidian plugin as a later phase, with the four design rules applied from phase 1 (decided 2026-10-29)
+- [ ] Obsidian plugin: Markdown templates, and which views it offers first
 - [ ] Mail accounts to support first (IMAP/SMTP, Gmail, Microsoft 365) and how sign-in works per device
