@@ -3,7 +3,7 @@
 > **Status:** planning only. No code yet. Working name "PlanCraft" until a final name is chosen.
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
-> **Last updated:** 2026-10-27
+> **Last updated:** 2026-10-29
 
 ## Goal
 
@@ -103,7 +103,7 @@ reordered, hidden, or stacked (two panels split vertically), as in Obsidian.
 | Panel | What it does in PlanCraft |
 |---|---|
 | Explorer | The project folder as it is on disk: schedule, backlog, board, `docs\`, attachments |
-| Search | Full-text search across tasks, notes, stories, risks and documents in the project; results open the item |
+| Search | Full-text search across tasks, notes, stories, risks, documents and filed mail in the project; results open the item |
 | Bookmarks | Pinned items: a task, a view (e.g. "Critical path, next 2 weeks"), a document, a filter |
 
 **Project-specific panels** (decided 2026-10-27)
@@ -150,6 +150,7 @@ M:\Jobs\Acme-Network\Acme-Network.plan\
         surface-1.am
         galaxy-tab.am
     docs\                    # .docx documents made from templates (+ lock notes)
+    mail\                    # .eml messages filed to the project
     attachments\             # photos, linked PDFs (optional)
 ```
 
@@ -232,6 +233,41 @@ Scrum templates need agile work modelled in the app, not only a Gantt:
   person at a time, so a lock note in the folder (e.g. "open on Surface-1"), shown as a warning
   when another device opens the document, should be enough.
 
+## Project mail
+
+**Status: early idea (2026-10-29).** Look and behaviour not decided; this section is a starting
+point, not a design.
+
+### Direction
+
+*Project mail*, not a full Outlook-style client: the mailbox stays on the mail server, and only
+the messages that matter to a project are brought into it.
+
+- **Mail panel** in the left sidebar and a **mail tab type** in the Obsidian-style shell.
+- **File to project:** drag a message onto the project to save it as an `.eml` in `mail\` inside
+  the project folder. Each message is its own file, so Syncthing syncs it without conflicts.
+- **Link and create:** link a message to a task, or turn it into a task or punch item; the
+  Inspector shows a task's linked mail.
+- **Send from the project:** status reports and templates sent with project fields filled in.
+- **Search:** filed mail appears in the Search panel with tasks and documents.
+- **Accounts per device:** credentials live in each device's own secure storage (Windows
+  Credential Manager, Android Keystore), never in the shared folder.
+
+### Libraries (permissive, usable directly)
+
+| Library | Licence | Use |
+|---|---|---|
+| Pimalaya crates (behind the [Himalaya](https://github.com/pimalaya/himalaya) CLI) | MIT or Apache-2.0 | IMAP, SMTP, JMAP, Gmail API, Microsoft Graph, Maildir/mbox; OAuth tokens supported, but the sign-in flow must be added |
+| Stalwart `mail-parser`, `mail-builder`, `mail-send` | Apache-2.0 or MIT | Read filed `.eml` files, build and send messages |
+| `lettre` (SMTP), `async-imap` (IMAP) | MIT / Apache (to confirm) | Alternatives for sending and IMAP |
+
+### Reference only (GPL)
+
+| Project | Licence | What to learn |
+|---|---|---|
+| meli | GPL-3.0-or-later | Full-featured terminal client: threading, search, account handling |
+| Penguin Mail | GPL-3.0 | Native Rust desktop client with mail, calendar, contacts, OpenPGP: UI ideas |
+
 ## Reference projects
 
 GridCraft's rules forbid copying GPL/AGPL/LGPL code, and PlanCraft keeps GridCraft's
@@ -240,6 +276,7 @@ MIT/Apache licence. These are **behaviour references** (study, observe, test aga
 | Project | Licence | What to learn |
 |---|---|---|
 | ProjectLibre | CPAL | Closest MS Project clone: ribbon, WBS/RBS charts, earned value, MS Project import/export |
+| meli, Penguin Mail | GPL-3.0 | Email clients; see [Project mail](#project-mail) |
 | GanttProject (`bardsoftware/ganttproject`) | GPL | Gantt interaction, baselines, resource charts |
 | TaskJuggler (`taskjuggler/TaskJuggler`) | GPL | Scheduling and resource leveling |
 | MPXJ (`joniles/mpxj`) | LGPL-2.1 | MS Project field mapping; reads .mpp and ~20 other formats, writes MSPDI. Use as a test oracle / external converter only |
@@ -247,7 +284,7 @@ MIT/Apache licence. These are **behaviour references** (study, observe, test aga
 More reference repos to be added after further research.
 
 **Code that can be used directly** (permissive): Automerge or Loro (sync), `petgraph` (if a
-separate task graph is wanted), plus GridCraft itself.
+separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project mail](#project-mail)), plus GridCraft itself.
 
 ## Phases
 
@@ -262,6 +299,7 @@ separate task graph is wanted), plus GridCraft itself.
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
 | 6 | MSPDI import/export; XLSX and PDF reports | A project round-trips through MS Project XML |
 | 7 | Resource leveling, Network Diagram | — |
+| 7b | Project mail (scope to be decided) | A message filed to a project, linked to a task, and visible on another device |
 | 8 | Android build (Craft port conventions: self-update from repo, phone layout) | Runs on the Galaxy Tab and Pixel |
 | 9 | Optional: module inside CraftStudio | — |
 
@@ -291,3 +329,5 @@ separate task graph is wanted), plus GridCraft itself.
 - [ ] Which document tables import back into the project, and their required headings
 - [ ] Agile model scope (story points, velocity, Kanban WIP limits) and how hybrid projects show on the Gantt
 - [ ] Lock-note behaviour for documents (warn only, or read-only on other devices)
+- [ ] Project mail: how it looks and works; project mail only, or a fuller client (inbox, folders, calendar)?
+- [ ] Mail accounts to support first (IMAP/SMTP, Gmail, Microsoft 365) and how sign-in works per device
