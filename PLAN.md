@@ -135,6 +135,30 @@ Calendar, Kanban.
 The same shell could later hold drawings, schedules and documents as different tab types, which
 is close to the mode switching planned for CraftStudio.
 
+## New project wizard
+
+**Decided (2026-10-29):** an **optional** wizard for the common project information when starting
+a new project. "Skip" at any step creates the project with whatever has been filled in (or blank).
+
+### Steps (first draft)
+
+1. **Basics:** title, purpose / description, client, site address
+2. **Dates:** start date, deadline (finish), working calendar (work week, holidays)
+3. **People:** project manager, sponsor, stakeholders (name, role, contact), team
+4. **Budget:** total budget, currency, optional cost categories
+5. **Method:** waterfall, agile/scrum or hybrid; picks the starting views and template set
+6. **Review:** summary of everything entered, then Create
+
+### Where the answers go
+
+- Stored as **project properties** in the project file (synced like everything else).
+- Fill the matching fields in document templates (charter, scope, status report) and the
+  stakeholder register.
+- Editable later in a **Project Information** pane (and the Inspector when the project itself is
+  selected), so skipping the wizard loses nothing.
+- Same wizard reachable as a command (`project.newWizard`), and its fields settable through the
+  CLI / MCP like every other command.
+
 ## Multi-device design
 
 **Problem.** If two devices edit one file and Syncthing syncs it, Syncthing keeps one and writes
@@ -328,7 +352,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
 | 1 | `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
-| 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
+| 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
@@ -368,4 +392,6 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 - [ ] Project mail: how it looks and works; project mail only, or a fuller client (inbox, folders, calendar)?
 - [x] Obsidian plugin as a later phase, with the four design rules applied from phase 1 (decided 2026-10-29)
 - [ ] Obsidian plugin: Markdown templates, and which views it offers first
+- [x] Optional new project wizard (decided 2026-10-29)
+- [ ] Wizard: final field list and step order
 - [ ] Mail accounts to support first (IMAP/SMTP, Gmail, Microsoft 365) and how sign-in works per device
