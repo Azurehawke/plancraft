@@ -27,6 +27,8 @@ gridcraft-pdf = { path = "crates/pdf" }
 plancraft-project = { path = "crates/project" }
 plancraft-project-sync = { path = "crates/project-sync" }
 plancraft-schedule = { path = "crates/schedule" }
+plancraft-commands = { path = "crates/commands" }
+plancraft-shell = { path = "crates/shell" }
 # Every craft-libs crate (craft-update and craft-window here, craft-ui in ui-egui, craft-print in
 # the app) comes from one storytold/craft-libs revision.
 # craft-update: app-specific pretend versions apply to startup and manual checks.

@@ -4218,6 +4218,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "plancraft-commands"
+version = "0.3.0"
+dependencies = [
+ "plancraft-project",
+ "plancraft-project-sync",
+ "serde_json",
+]
+
+[[package]]
 name = "plancraft-project"
 version = "0.3.0"
 dependencies = [
@@ -4248,6 +4257,10 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "plancraft-shell"
+version = "0.3.0"
 
 [[package]]
 name = "plist"
