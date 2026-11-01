@@ -16,8 +16,13 @@ path = "src/main.rs"
 [dependencies]
 gridcraft-engine = { workspace = true }
 gridcraft-mcp = { workspace = true }
+plancraft-project = { workspace = true }
+plancraft-project-sync = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 # `check`: validating the packages PlanCraft writes (content types, relationships).
 zip = { workspace = true }
 quick-xml = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

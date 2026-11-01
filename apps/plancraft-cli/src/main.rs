@@ -11,6 +11,7 @@
 //! plancraft-cli functions [--json] [--search X] [--category C]
 //! plancraft-cli mcp [--connect PORT] [--in FILE | --sample NAME]
 //! plancraft-cli send <port> <method> [json]
+//! plancraft-cli project <command> …   (PlanCraft projects; `plancraft-cli project help`)
 //! plancraft-cli version | --version
 //! ```
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -30,6 +31,7 @@ macro_rules! outln {
 }
 
 mod check;
+mod project;
 
 use gridcraft_engine::Session;
 use serde_json::{Value, json};
@@ -49,6 +51,7 @@ const USAGE: &str = "usage:
   plancraft-cli functions [--json] [--search X] [--category C]
   plancraft-cli mcp [--connect PORT] [--in FILE | --sample NAME]
   plancraft-cli send <port> <method> [json]
+  plancraft-cli project <command> …                        PlanCraft projects (plancraft-cli project help)
   plancraft-cli version";
 
 /// stdout went away. A reader that stopped early (a closed pipe) ends the program quietly; any
@@ -83,6 +86,7 @@ fn main() -> ExitCode {
         Some("functions") => functions(rest),
         Some("mcp") => mcp(rest),
         Some("send") => send(rest),
+        Some("project") => project::main(rest),
         Some(other) => Err(format!("unknown subcommand `{other}`\n{USAGE}")),
         None => Err(USAGE.to_string()),
     };

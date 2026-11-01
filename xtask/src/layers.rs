@@ -34,6 +34,9 @@ pub const TABLE: &[(&str, Class)] = &[
     ("model", Class::Layer(2)),
     ("calc", Class::Layer(2)),
     ("xlsx", Class::Layer(2)),
+    // PlanCraft: the project model and its Loro sync (no UI, compiles to wasm).
+    ("project", Class::Layer(2)),
+    ("project-sync", Class::Layer(2)),
     ("chart", Class::Layer(3)),
     ("engine", Class::Layer(5)),
     ("ui-egui", Class::Layer(6)),
@@ -47,7 +50,8 @@ pub const TABLE: &[(&str, Class)] = &[
 
 /// Explicit orderings *within* a layer (earlier may be used by later). Each chain is separate:
 /// `calc` and `xlsx` both build on `model` but not on each other.
-pub const INTRA_LAYER_ORDER: &[&[&str]] = &[&["core", "numfmt"], &["formula", "functions"], &["model", "calc"], &["model", "xlsx"]];
+pub const INTRA_LAYER_ORDER: &[&[&str]] =
+    &[&["core", "numfmt"], &["formula", "functions"], &["model", "calc"], &["model", "xlsx"], &["project", "project-sync"]];
 
 fn intra_layer_allowed(from: &str, to: &str) -> bool {
     let (from, to) = (short_name(from), short_name(to));

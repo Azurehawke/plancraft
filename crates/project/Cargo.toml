@@ -1,0 +1,18 @@
+[package]
+name = "plancraft-project"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "PlanCraft project model: project information, tasks (WBS), dependencies, resources, assignments and the working calendar"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
