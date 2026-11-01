@@ -159,6 +159,38 @@ a new project. "Skip" at any step creates the project with whatever has been fil
 - Same wizard reachable as a command (`project.newWizard`), and its fields settable through the
   CLI / MCP like every other command.
 
+## RevuCraft link (optional)
+
+**Decided (2026-11-01):** PlanCraft is a **standalone app** for any kind of project. Linking to
+RevuCraft is an **option in Settings**, off by default; nothing in the core app depends on it.
+Details and the RevuCraft side are in [`docs/revucraft-integration.md`](docs/revucraft-integration.md).
+
+### What the link does
+
+- **RevuCraft → PlanCraft:** PlanCraft reads punch items and comments from linked drawings and
+  works them into the plan, progress and Gantt automatically.
+  - *Example:* a punch item added in RevuCraft for a tech, with an assignee and due date, appears
+    in PlanCraft as a task assigned to that tech with that due date, without retyping.
+  - Punch status drives the task's progress (Closed = done); comments and replies become task notes.
+- **PlanCraft → RevuCraft:** RevuCraft reads the plan (tasks, assignments, dates, dashboard) so
+  drawings, assignments and the schedule stay in step.
+
+### How it works (first draft)
+
+- **Settings:** a global "Link to RevuCraft" switch; per project, the drawings (PDFs in the job
+  folder) to watch.
+- **New punch item → new task**, placed under a "Field items" summary task (or a parent chosen in
+  settings). Assignee matched to a resource by name, or a new resource created; due date becomes
+  the task's deadline/finish.
+- **Field ownership:** punch fields (description, assignee, due date, status) are edited in
+  RevuCraft and shown in PlanCraft with "Edit in RevuCraft"; scheduling fields (WBS position,
+  dependencies, duration, baselines) are PlanCraft's.
+- **Punch deleted in RevuCraft:** the task is marked cancelled, not deleted, so history is kept.
+- **Transport:** RevuCraft's `markups.json` sidecar (per the integration notes), or RevuCraft
+  writing its own Loro change file in the project's `devices\` folder now that Loro is chosen.
+  To be settled with the RevuCraft session.
+- Stable task ids (not WBS codes) for links in both directions.
+
 ## Multi-device design
 
 **Problem.** If two devices edit one file and Syncthing syncs it, Syncthing keeps one and writes
@@ -367,6 +399,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 1 | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
+| 3b | RevuCraft link (setting, punch items → tasks, plan → RevuCraft) | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
@@ -391,7 +424,8 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 - [x] Project on disk: `Name.plan\` folder with `Name.plancraft` entry file inside (decided 2026-11-01)
 - [ ] Which MS Project features matter for the first usable version (scope of phase 3)
 - [ ] Desktop-first, or Android in parallel from the start?
-- [ ] Integration with RevuCraft (link tasks to drawing sheets, field photos, site notes)?
+- [x] RevuCraft: optional link in Settings; PlanCraft stays standalone; punch items become tasks automatically (decided 2026-11-01)
+- [ ] RevuCraft link transport: `markups.json` sidecar or RevuCraft as a Loro "device"; plus the open questions in `docs/revucraft-integration.md`
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
 - [x] Interface layout: Obsidian-style shell (decided 2026-10-27)

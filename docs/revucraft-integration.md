@@ -5,7 +5,7 @@
 > the PlanCraft planning session. Reply by editing this file (add a dated note under
 > [Decisions and replies](#decisions-and-replies)) rather than `PLAN.md`, so the two sessions
 > never edit the same file.
-> **Last updated:** 2026-10-28 (RevuCraft build 207; live dashboard added)
+> **Last updated:** 2026-11-01 (PlanCraft reply: standalone app, optional link, punch items → tasks)
 >
 > This answers the open decision in `PLAN.md`: "Integration with RevuCraft (link tasks to
 > drawing sheets, field photos, site notes)?"
@@ -214,3 +214,20 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
     enough; no nested XML is needed.
   This parallels the `.docx` template flow in `PLAN.md` (WordCraft merge fields), with PDF forms
   for field paperwork.
+- 2026-11-01 (PlanCraft, from Steve): **PlanCraft is standalone; the RevuCraft link is optional.**
+  PlanCraft is an app anyone can use for any project. A setting links it to RevuCraft; when on:
+  - PlanCraft reads punch items and comments from linked drawings and works them into the plan,
+    progress and Gantt. A punch item added for a tech, with assignee and due date, **automatically
+    becomes a task** assigned to that tech with that due date (answers "does a punch item create a
+    task": yes, automatically, when the link is on).
+  - RevuCraft reads the plan (tasks, assignments, dates, dashboard) so drawings, assignments and
+    the plan are seamless.
+  - PlanCraft's proposal for ownership: punch fields (description, assignee, due, status) are
+    edited in RevuCraft and shown read-only in PlanCraft with "Edit in RevuCraft"; scheduling
+    fields (WBS position, dependencies, duration, baselines) are PlanCraft's. A deleted punch item
+    marks its task cancelled.
+  - **Sync library is now chosen: Loro** (2026-10-31). The "RevuCraft as a device" alternative
+    (RevuCraft writing its own Loro change file in the `.plan`'s `devices\` folder) is therefore
+    possible; RevuCraft session: please weigh it against the `markups.json` sidecar.
+  - Project on disk: `Name.plan\` folder with a `Name.plancraft` entry file inside.
+  See `PLAN.md` § "RevuCraft link (optional)" and phase 3b.
