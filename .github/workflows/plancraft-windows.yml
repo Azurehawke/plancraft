@@ -80,16 +80,29 @@ jobs:
             dist/release/*.zip
           if-no-files-found: error
 
+      # A v* tag publishes that tag. A push to main or a phase-* branch publishes v<workspace
+      # version> once: the first build of a version that has no release yet creates it (and its
+      # tag, at this commit); later builds of the same version leave it alone.
       - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            gh release delete "$tag" --yes || true
+            verify="--verify-tag"
+          else
+            version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml)
+            tag="v$version"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "$tag is already released; not publishing"
+              exit 0
+            fi
+            verify="--target $GITHUB_SHA"
+          fi
           pre=""
           case "$tag" in *-*) pre="--prerelease" ;; esac
-          gh release delete "$tag" --yes || true
-          gh release create "$tag" dist/release/*.msi dist/release/*.zip $pre --verify-tag \
+          gh release create "$tag" dist/release/*.msi dist/release/*.zip $pre $verify \
             --title "PlanCraft ${tag#v} for Windows" \
             --notes "Built from ${GITHUB_SHA::7}. The .msi installs PlanCraft (Start menu, optional desktop shortcut); the portable .zip runs from any folder without installing. The files aren't code-signed, so Windows SmartScreen may ask: choose More info, then Run anyway."
