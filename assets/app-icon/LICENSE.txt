@@ -1,8 +1,8 @@
-GridCraft app icon (gridcraft.svg and every file derived from it in this directory:
-gridcraft-1024.png, gridcraft-macos-512.png, gridcraft.icns, gridcraft.ico, hicolor/).
+PlanCraft app icon (plancraft.svg and every file derived from it in this directory:
+plancraft-1024.png, plancraft-macos-512.png, plancraft.icns, plancraft.ico, hicolor/).
 
-PLACEHOLDER artwork: original work written for this project by GridCraft contributors (simple
-hand-written SVG geometry). No third-party material. Licensed like the rest of GridCraft, under
+Original work written for PlanCraft by PlanCraft contributors (simple
+hand-written SVG geometry). No third-party material. Licensed like the rest of PlanCraft, under
 either of
 
   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)

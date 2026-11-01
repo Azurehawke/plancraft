@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** groundwork starting (2026-11-01). Name: **PlanCraft** (final).
+> **Status:** Phase 0 in progress (2026-11-01). Name: **PlanCraft** (final).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -413,8 +413,24 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 ## Upstream policy
 
 - Keep GridCraft's crates unmodified where possible; put project code in new crates.
-- Merge `storytold/gridcraft` updates by hand when wanted.
+- Merge `storytold/gridcraft` updates by hand when wanted (`upstream` remote).
 - Changes needed in shared crates are kept small and noted here so merges stay easy.
+
+**Phase 0 changes to keep on upstream merges** (2026-11-01):
+
+- `README.md` is PlanCraft's (GridCraft's is at `docs/gridcraft-README.md`): keep ours.
+- Workspace version is PlanCraft's (`0.1.0` onwards) and `repository` points here: keep ours.
+- Apps renamed: `apps/plancraft`, `apps/plancraft-cli` (packages `plancraft`, `plancraft-cli`);
+  `xtask/src/layers.rs` also maps `plancraft-*` crates.
+- `crates/ui-egui/src/lib.rs`: `APP_NAME`, `ACCENT` and `UPDATE_APP` (updates come from this
+  repo's releases); message-box titles use `APP_NAME`; About and File › Account show PlanCraft.
+- Packaging renamed (`packaging/windows/plancraft.wxs` with its own UpgradeCode, Linux/macOS
+  files), new icon (`assets/app-icon/plancraft.*`).
+- Upstream-only workflows removed (release, SonarCloud, FreeBSD, Nix, Windows arm64) and
+  `omastore.toml`, `sonar-project.properties`, `.coderabbit.yaml`; PlanCraft's Windows build is
+  `.github/workflows/plancraft-windows.yml`.
+- Not yet renamed (later): translated UI strings that say GridCraft, MCP server name, the
+  control-channel token folder, `GRIDCRAFT_*` environment variables.
 
 ## Open decisions (for planning before work starts)
 

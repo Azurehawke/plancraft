@@ -6,14 +6,21 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-/// GridCraft as craft-update knows it, with its 128 px icon and accent colour: the update
-/// prompt shows both, and an AppImage's menu entry gets the icon.
+/// The app's name as people see it (window title, message boxes, About).
+pub const APP_NAME: &str = "PlanCraft";
+
+/// PlanCraft as craft-update knows it, with its 128 px icon and accent colour: update checks read
+/// the releases of `Azurehawke/plancraft` (assets `plancraft-<version>-windows-x64.msi` and so on).
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
-    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.gridcraft.png")),
-    accent: Some([0x1f, 0x9d, 0x55]),
-    ..craft_update::suite::GRIDCRAFT
+    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.plancraft.png")),
+    accent: Some(ACCENT),
+    developer: "Azurehawke",
+    ..craft_update::app::App::new("plancraft", "PlanCraft", "Projects and schedules", "Azurehawke/plancraft")
 };
+
+/// PlanCraft's accent colour (the icon's tile).
+pub const ACCENT: [u8; 3] = [0x2b, 0x6c, 0xd4];
 
 pub mod backstage;
 mod border_preview;

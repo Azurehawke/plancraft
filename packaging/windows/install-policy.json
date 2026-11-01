@@ -1,147 +1,147 @@
 {
-  "id": "gridcraft",
-  "name": "GridCraft",
-  "upgradeCode": "5511327B-F305-41BE-92D0-EB84944E7C4D",
+  "id": "plancraft",
+  "name": "PlanCraft",
+  "upgradeCode": "C51D8C18-75AB-4A86-A87E-28E3AA8A6845",
   "sources": [
-    "gridcraft.wxs"
+    "plancraft.wxs"
   ],
-  "icon": "assets/app-icon/gridcraft.ico",
+  "icon": "assets/app-icon/plancraft.ico",
   "localization": [],
   "extensions": [],
   "payloads": [
-    "gridcraft-cli.exe",
-    "gridcraft.exe"
+    "plancraft-cli.exe",
+    "plancraft.exe"
   ],
   "registry": [
     [
       "-1",
-      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\gridcraft.exe",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\plancraft.exe",
       "",
-      "[#GridcraftExe]"
+      "[#PlancraftExe]"
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.Workbook",
+      "Software\\Classes\\PlanCraft.Workbook",
       "",
-      "GridCraft Workbook"
+      "PlanCraft Workbook"
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.Workbook\\DefaultIcon",
+      "Software\\Classes\\PlanCraft.Workbook\\DefaultIcon",
       "",
-      "\"[#GridcraftExe]\",0"
+      "\"[#PlancraftExe]\",0"
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.Workbook\\shell\\open\\command",
+      "Software\\Classes\\PlanCraft.Workbook\\shell\\open\\command",
       "",
-      "\"[#GridcraftExe]\" \"%1\""
+      "\"[#PlancraftExe]\" \"%1\""
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.TextData",
+      "Software\\Classes\\PlanCraft.TextData",
       "",
-      "GridCraft Text Data"
+      "PlanCraft Text Data"
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.TextData\\DefaultIcon",
+      "Software\\Classes\\PlanCraft.TextData\\DefaultIcon",
       "",
-      "\"[#GridcraftExe]\",0"
+      "\"[#PlancraftExe]\",0"
     ],
     [
       "-1",
-      "Software\\Classes\\GridCraft.TextData\\shell\\open\\command",
+      "Software\\Classes\\PlanCraft.TextData\\shell\\open\\command",
       "",
-      "\"[#GridcraftExe]\" \"%1\""
+      "\"[#PlancraftExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.xlsx\\OpenWithProgids",
-      "GridCraft.Workbook",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
       "Software\\Classes\\.xlsm\\OpenWithProgids",
-      "GridCraft.Workbook",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
       "Software\\Classes\\.xlsb\\OpenWithProgids",
-      "GridCraft.Workbook",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
       "Software\\Classes\\.ods\\OpenWithProgids",
-      "GridCraft.Workbook",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
       "Software\\Classes\\.csv\\OpenWithProgids",
-      "GridCraft.TextData",
-      "GridCraft.TextData"
+      "PlanCraft.TextData",
+      "PlanCraft.TextData"
     ],
     [
       "-1",
       "Software\\Classes\\.tsv\\OpenWithProgids",
-      "GridCraft.TextData",
-      "GridCraft.TextData"
+      "PlanCraft.TextData",
+      "PlanCraft.TextData"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities",
+      "Software\\PlanCraft\\Capabilities",
       "ApplicationName",
-      "GridCraft"
+      "PlanCraft"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities",
+      "Software\\PlanCraft\\Capabilities",
       "ApplicationDescription",
       "Open-source spreadsheet for .xlsx, CSV and TSV files"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities\\FileAssociations",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
       ".xlsx",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities\\FileAssociations",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
       ".xlsm",
-      "GridCraft.Workbook"
+      "PlanCraft.Workbook"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities\\FileAssociations",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
       ".csv",
-      "GridCraft.TextData"
+      "PlanCraft.TextData"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Capabilities\\FileAssociations",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
       ".tsv",
-      "GridCraft.TextData"
+      "PlanCraft.TextData"
     ],
     [
       "-1",
       "Software\\RegisteredApplications",
-      "GridCraft",
-      "Software\\GridCraft\\Capabilities"
+      "PlanCraft",
+      "Software\\PlanCraft\\Capabilities"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Installer",
+      "Software\\PlanCraft\\Installer",
       "DesktopShortcut",
       "[DESKTOPSHORTCUT]"
     ],
     [
       "-1",
-      "Software\\GridCraft\\Installer",
+      "Software\\PlanCraft\\Installer",
       "DesktopShortcutComponent",
       "#1"
     ]

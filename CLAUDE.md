@@ -1,3 +1,18 @@
+# PlanCraft fork — read first
+
+This repository is **PlanCraft** (`Azurehawke/plancraft`), a project planner built on GridCraft.
+`PLAN.md` is the plan (decisions, phases, open questions); `docs/revucraft-integration.md` holds
+the RevuCraft notes. The GridCraft instructions below still apply to the shared code, with these
+differences:
+
+- Apps are `apps/plancraft` and `apps/plancraft-cli` (packages `plancraft`, `plancraft-cli`):
+  `cargo run --release -p plancraft`. GridCraft's crates keep their `gridcraft-*` names; new
+  PlanCraft crates are `plancraft-*` (registered in `xtask/src/layers.rs`).
+- `plan/STATUS.md` and the storytold-only CI rules don't apply here. Windows builds and releases
+  come from `.github/workflows/plancraft-windows.yml`.
+- Upstream (`storytold/gridcraft`) is merged by hand; keep PlanCraft's `README.md` and
+  workspace version on conflicts (see `PLAN.md` § Upstream policy).
+
 # GridCraft — instructions for agents
 
 GridCraft is a clean-room, open-source, Rust-native spreadsheet targeting Microsoft Excel parity — and superiority (speed, openness, agent control). It runs natively on macOS, Windows, Linux and BSD, and on the web via WASM. Siblings with the same conventions: `../designcraft` (InDesign-class, the closest reference), `../photocraft` (Photoshop), `../vectorcraft` (Illustrator), `../pdfcraft` (Acrobat), `../filmcraft` (Premiere), `../lightcraft` (Lightroom), `../effectcraft` (After Effects).
