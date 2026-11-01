@@ -154,7 +154,7 @@
     <ComponentGroup Id="PlancraftFiles" Directory="INSTALLFOLDER">
       <Component Id="PlancraftApp" Guid="BA4E1CB5-211C-49AC-AD4E-1EE250811B95">
         <File Id="PlancraftExe" Source="$(var.BinDir)\plancraft.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="PlanCraft" Description="PlanCraft project planner" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="PlancraftIcon.ico" IconIndex="0" />
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="PlanCraft" Description="PlanCraft project planner" WorkingDirectory="INSTALLFOLDER" Advertise="no" Icon="PlancraftIcon.ico" IconIndex="0" />
         </File>
 
         <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\plancraft.exe" Value="[#PlancraftExe]" Type="string" />
