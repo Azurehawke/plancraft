@@ -3,7 +3,7 @@
 > **Status:** planning only. No code yet. Working name "PlanCraft" until a final name is chosen.
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
-> **Last updated:** 2026-10-29
+> **Last updated:** 2026-10-31
 
 ## Goal
 
@@ -36,7 +36,7 @@ devices, including offline, and the edits merge cleanly.
 |---|---|---|
 | `project-model` | L2 | Tasks, WBS outline, dependencies, calendars, resources, assignments, baselines, custom fields |
 | `schedule` | L2 | Critical path scheduler: forward/backward pass, slack, constraints, summary rollups; later resource leveling |
-| `project-sync` | L2 | CRDT document (Automerge or Loro), per-device change files, merge on open, file watching |
+| `project-sync` | L2 | CRDT document (Loro), per-device change files, merge on open, file watching |
 | `mspdi` | L2 | MS Project XML (MSPDI) import and export |
 | Project commands | L5 | `project.*` / `task.*` / `resource.*` / `baseline.*` command families in the engine |
 | Project views | L6 | Gantt, Network Diagram, Resource Sheet, Task Usage, Resource Usage, Tracking Gantt, Calendar |
@@ -170,9 +170,9 @@ a new project. "Skip" at any step creates the project with whatever has been fil
 M:\Jobs\Acme-Network\Acme-Network.plan\
     project.json             # project id, name, format version
     devices\
-        laptop.am            # this device's CRDT changes (only the laptop writes it)
-        surface-1.am
-        galaxy-tab.am
+        laptop.loro          # this device's CRDT changes (only the laptop writes it)
+        surface-1.loro
+        galaxy-tab.loro
     docs\                    # .docx documents made from templates (+ lock notes)
     mail\                    # .eml messages filed to the project
     attachments\             # photos, linked PDFs (optional)
@@ -185,8 +185,22 @@ M:\Jobs\Acme-Network\Acme-Network.plan\
   different fields or tasks always merge.
 - Occasionally compact: a device may write a merged snapshot, after which old change files can be trimmed.
 
-**Libraries to evaluate:** Automerge (MIT, Rust) and Loro (MIT, Rust). Decide by: file size,
-merge speed on a few thousand tasks, Android build, and how history is kept.
+**Sync library: Loro** (MIT, Rust; decided 2026-10-31). Chosen over Automerge because:
+
+- **Movable tree:** the WBS (indent, outdent, drag to re-parent) is a built-in type; concurrent
+  moves on two devices cannot duplicate a task or create a parent loop.
+- **Movable list:** reordering tasks and backlog items merges without duplicates.
+- **Version history:** the project can be opened as it was at any earlier point (e.g. before a
+  client change).
+- **Shallow snapshots:** used for the compaction step above.
+- Runs in WebAssembly (Obsidian plugin) and on Android.
+
+**Risk:** Loro is younger than Automerge (1.0 in October 2024) with a smaller community.
+**Phase 1 prototype test:** a few thousand tasks, edited offline on the laptop and the tablet with
+conflicting moves and edits, synced by Syncthing; must merge correctly in both the native app and
+the WebAssembly build, with acceptable file sizes and load times. If it fails, switch to Automerge
+(MIT) before anything else depends on the sync layer; Automerge would need app-level code for
+moves and tree-loop repair.
 
 The same pattern could later be backported to RevuCraft if it uses one shared file.
 
@@ -310,8 +324,8 @@ Obsidian-native UI, installed through BRAT.
 
 1. **Core crates stay UI-free.** `project-model`, `schedule` and `project-sync` must not depend on
    egui or any UI, so they compile to WebAssembly. A wasm build check runs in CI from phase 1.
-2. **Sync library runs in WebAssembly.** Automerge and Loro both have wasm/JS builds; test this
-   as part of choosing between them.
+2. **Sync library runs in WebAssembly.** Loro has a wasm/JS build; the phase 1 prototype test
+   covers it.
 3. **Each project has an entry file.** Obsidian opens files by extension, not folders, so a project
    needs a file such as `Acme.plan\Acme.plancraft` (or a `.plancraft` file next to the folder).
    This also settles the folder extension and layout decision.
@@ -342,7 +356,7 @@ MIT/Apache licence. These are **behaviour references** (study, observe, test aga
 
 More reference repos to be added after further research.
 
-**Code that can be used directly** (permissive): Automerge or Loro (sync), `petgraph` (if a
+**Code that can be used directly** (permissive): Loro (sync), `petgraph` (if a
 separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project mail](#project-mail)), plus GridCraft itself.
 
 ## Phases
@@ -350,7 +364,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | # | Phase | Done when |
 |---|---|---|
 | 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
-| 1 | `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
+| 1 | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
@@ -373,7 +387,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 
 - [ ] Final app name and repo name
 - [ ] How to bring GridCraft in: import its full history (keeps upstream merges easy) or vendor its crates?
-- [ ] Automerge vs Loro (must also run in WebAssembly for the Obsidian plugin)
+- [x] Sync library: Loro, with Automerge as fallback if the phase 1 prototype test fails (decided 2026-10-31)
 - [ ] Project folder extension, layout and entry-file name (e.g. `.plancraft`)
 - [ ] Which MS Project features matter for the first usable version (scope of phase 3)
 - [ ] Desktop-first, or Android in parallel from the start?
