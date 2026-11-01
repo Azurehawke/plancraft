@@ -91,7 +91,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             tag="${GITHUB_REF_NAME}"
             gh release delete "$tag" --yes || true
-            verify="--verify-tag"
+            flags=(--verify-tag)
           else
             version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml)
             tag="v$version"
@@ -99,10 +99,9 @@ jobs:
               echo "$tag is already released; not publishing"
               exit 0
             fi
-            verify="--target $GITHUB_SHA"
+            flags=(--target "$GITHUB_SHA")
           fi
-          pre=""
-          case "$tag" in *-*) pre="--prerelease" ;; esac
-          gh release create "$tag" dist/release/*.msi dist/release/*.zip $pre $verify \
+          case "$tag" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$tag" dist/release/*.msi dist/release/*.zip "${flags[@]}" \
             --title "PlanCraft ${tag#v} for Windows" \
             --notes "Built from ${GITHUB_SHA::7}. The .msi installs PlanCraft (Start menu, optional desktop shortcut); the portable .zip runs from any folder without installing. The files aren't code-signed, so Windows SmartScreen may ask: choose More info, then Run anyway."

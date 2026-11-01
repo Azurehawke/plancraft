@@ -145,7 +145,7 @@ fn mcp_over_stdio() {
     let text = String::from_utf8(out.stdout).unwrap();
     let lines: Vec<serde_json::Value> = text.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
     assert_eq!(lines.len(), 2, "{text}");
-    assert_eq!(lines[0]["result"]["serverInfo"]["name"], "plancraft");
+    assert_eq!(lines[0]["result"]["serverInfo"]["name"], "gridcraft");
     assert!(lines[1]["result"]["content"][0]["text"].as_str().unwrap().contains("42"));
 }
 
