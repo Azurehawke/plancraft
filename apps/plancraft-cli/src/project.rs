@@ -25,6 +25,7 @@ pub(crate) const USAGE: &str = "usage:
   plancraft-cli project resource <project> add <name> | set <resource> <field> <value> | delete <resource>
   plancraft-cli project assign <project> <task> <resource> [--units 1]
   plancraft-cli project holiday <project> add|remove <YYYY-MM-DD>
+  plancraft-cli project schedule <project> [--json]           project dates, critical path, scheduling warnings
   plancraft-cli project devices <project>                     each device's change file
   <project> is a .plan folder or its .plancraft file; <task> is a WBS code (1.2) or a task id.
   This computer saves as the device in PLANCRAFT_DEVICE, or a name kept in PlanCraft's settings folder.";
@@ -51,6 +52,7 @@ pub(crate) fn main(args: &[String]) -> Result<(), String> {
         "assign" => assign(rest),
         "holiday" => holiday(rest),
         "devices" => devices(rest),
+        "schedule" => schedule_cmd(rest),
         "" | "help" | "--help" | "-h" => {
             outln!("{USAGE}");
             Ok(())
@@ -278,24 +280,56 @@ fn show(args: &[String]) -> Result<(), String> {
     a.no_extra(1)?;
     let f = open(path)?;
     let p = f.doc().project();
+    let sched = plancraft_schedule::schedule(&p, today());
     if a.has("json") {
         let problems: Vec<String> = p.problems().iter().map(|x| x.to_string()).collect();
-        let v = json!({ "project": p, "problems": problems, "device": f.device() });
+        let v = json!({ "project": p, "schedule": sched, "problems": problems, "device": f.device() });
         outln!("{}", serde_json::to_string_pretty(&v).map_err(|e| e.to_string())?);
         return Ok(());
     }
-    print_project(&p, a.has("all"));
+    print_project(&p, &sched, a.has("all"));
     Ok(())
 }
 
-fn print_project(p: &Project, all: bool) {
+/// Today's local date (the scheduler never reads the clock itself).
+#[allow(clippy::disallowed_methods)] // the CLI never runs on wasm
+fn today() -> plancraft_project::Date {
+    use chrono::Datelike;
+    let n = chrono::Local::now().date_naive();
+    plancraft_project::Date::from_ymd(n.year(), n.month(), n.day())
+        .unwrap_or_else(|| plancraft_project::Date::from_ymd(2026, 1, 1).unwrap_or_default())
+}
+
+fn schedule_cmd(args: &[String]) -> Result<(), String> {
+    let a = Args::parse(args, &[], &["json"])?;
+    let path = a.pos(0, "project")?;
+    a.no_extra(1)?;
+    let f = open(path)?;
+    let p = f.doc().project();
+    let s = plancraft_schedule::schedule(&p, today());
+    if a.has("json") {
+        outln!("{}", serde_json::to_string_pretty(&s).map_err(|e| e.to_string())?);
+        return Ok(());
+    }
+    outln!("{} → {}", s.start, s.finish);
+    let critical: Vec<&str> = p.tasks.iter().filter(|t| !t.summary && s.get(&t.id).is_some_and(|d| d.critical)).map(|t| t.wbs.as_str()).collect();
+    outln!("critical path: {}", if critical.is_empty() { "(none)".to_string() } else { critical.join(", ") });
+    for w in &s.warnings {
+        outln!("warning: {w}");
+    }
+    Ok(())
+}
+
+fn print_project(p: &Project, sched: &plancraft_schedule::Schedule, all: bool) {
     print_header(p);
+    outln!("scheduled {} → {}   (* critical)", sched.start, sched.finish);
+    outln!();
     if p.tasks.is_empty() {
         outln!("no tasks yet (plancraft-cli project add <project> <name>)");
     }
     let wbs_w = p.tasks.iter().map(|t| t.wbs.len()).max().unwrap_or(3).max(3);
     for t in &p.tasks {
-        outln!("{}", task_line(t, wbs_w, all));
+        outln!("{}", task_line(t, sched.get(&t.id), wbs_w, all));
     }
     print_links(p, all);
     if all {
@@ -365,7 +399,7 @@ fn print_resources_and_calendar(p: &Project) {
     outln!("calendar: {}, {} h/day{holidays}", days.join(" "), c.hours_per_day);
 }
 
-fn task_line(t: &Task, wbs_w: usize, all: bool) -> String {
+fn task_line(t: &Task, sd: Option<&plancraft_schedule::TaskDates>, wbs_w: usize, all: bool) -> String {
     let indent = "  ".repeat(t.outline_level.saturating_sub(1) as usize);
     let days = f64::from(t.duration_minutes) / f64::from(plancraft_project::MINUTES_PER_DAY);
     let dur = if t.milestone {
@@ -375,14 +409,18 @@ fn task_line(t: &Task, wbs_w: usize, all: bool) -> String {
     } else {
         format!("{days}d")
     };
-    let dates = match (t.start, t.finish) {
-        (Some(s), Some(f)) => format!("{s} → {f}"),
-        (Some(s), None) => format!("{s} →"),
-        (None, Some(f)) => format!("→ {f}"),
-        (None, None) => String::new(),
+    let dates = match sd {
+        Some(x) if x.start == x.finish => format!("{}", x.start),
+        Some(x) => format!("{} → {}", x.start, x.finish),
+        None => String::new(),
     };
-    let mut line = format!("{:<wbs_w$}  {indent}{}", t.wbs, if t.name.is_empty() { "(no name)" } else { &t.name });
-    for extra in [dur, dates, if t.percent_complete > 0 { format!("{}%", t.percent_complete) } else { String::new() }] {
+    let slack = match sd {
+        Some(x) if !t.summary && x.total_slack != 0 => format!("slack {}d", x.total_slack),
+        _ => String::new(),
+    };
+    let mark = if sd.is_some_and(|x| x.critical) && !t.summary { '*' } else { ' ' };
+    let mut line = format!("{:<wbs_w$} {mark} {indent}{}", t.wbs, if t.name.is_empty() { "(no name)" } else { &t.name });
+    for extra in [dur, dates, slack, if t.percent_complete > 0 { format!("{}%", t.percent_complete) } else { String::new() }] {
         if !extra.is_empty() {
             line.push_str("  ");
             line.push_str(&extra);

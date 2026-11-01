@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 1 built (2026-11-01): project model, Loro sync and folder format, usable through `plancraft-cli project` (v0.2.0); Phase 0 is v0.1.0. Name: **PlanCraft** (final).
+> **Status:** Phase 2 built (2026-11-01): scheduler (critical path, calendar, constraints, slack) in `plancraft-schedule`, shown by `plancraft-cli project show/schedule` (v0.3.0). Phases 0–1: v0.1.0, v0.2.0. Name: **PlanCraft** (final).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -61,6 +61,15 @@ devices, including offline, and the edits merge cleanly.
 4. Summary task rollups; total and free slack; critical path.
 5. Tracking: actuals and % complete push remaining work.
 6. Later: resource leveling (TaskJuggler's behaviour is the reference).
+
+**As built (Phase 2, `crates/schedule`):** whole working days (durations ÷ hours per day, rounded
+up); FS/SS/FF/SF with lag or lead; links to or from a summary apply to every task under it;
+SNET/FNET/MSO/MFO in the forward pass, SNLT/FNLT/MSO/MFO and deadlines in the backward pass; ALAP
+placed at late dates; total slack and critical tasks; summaries span their subtasks; cancelled
+tasks skipped; link loops left out and reported; bounded against hostile values. Dates are
+computed, never stored, so every device shows the same schedule without sync traffic. Not yet:
+hours within a day, elapsed durations, task and resource calendars, actuals pushing remaining work
+(tracking, Phase 5), free slack, leveling.
 
 Test-first: hand-checked schedules as fixtures, plus MSPDI files produced by MS Project or MPXJ
 used only as comparison oracles (never committed if made by MS Project, per the clean-room rules).
@@ -426,7 +435,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 |---|---|---|
 | 0 ✅ | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
 | 1 ✅ | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
-| 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
+| 2 ✅ | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 3b | RevuCraft link (setting, punch items → tasks, plan → RevuCraft) | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |

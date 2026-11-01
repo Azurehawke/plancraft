@@ -72,7 +72,7 @@ fn two_devices_edit_offline_and_merge() {
     assert_eq!(a["project"]["info"]["deadline"], "2026-12-18");
 
     let text = ok("laptop", &["project", "show", &lp]);
-    assert!(text.contains("Acme Network") && text.contains("2.1  ") && text.contains("links:"), "{text}");
+    assert!(text.contains("Acme Network") && text.contains("Pull cable") && text.contains("scheduled ") && text.contains("links:"), "{text}");
     let devs = ok("laptop", &["project", "devices", &lp]);
     assert!(devs.contains("this device: laptop") && devs.contains("surface"), "{devs}");
 }

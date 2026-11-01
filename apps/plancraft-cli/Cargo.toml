@@ -18,6 +18,8 @@ gridcraft-engine = { workspace = true }
 gridcraft-mcp = { workspace = true }
 plancraft-project = { workspace = true }
 plancraft-project-sync = { workspace = true }
+plancraft-schedule = { workspace = true }
+chrono = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 # `check`: validating the packages PlanCraft writes (content types, relationships).

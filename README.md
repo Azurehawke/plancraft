@@ -17,7 +17,7 @@ spreadsheet by the ArtCraft team, and keeps GridCraft's engine, command system, 
 
 ## Status
 
-**Phase 1 (project files and sync).** Projects, their tasks, links, resources and calendar are
+**Phase 2 (scheduler).** Dates, slack and the critical path are computed from durations, links, constraints and the working calendar (`plancraft-cli project schedule`). Phase 1 (project files and sync): Projects, their tasks, links, resources and calendar are
 stored in a `.plan` folder that several devices can edit offline and merge (Loro CRDT, one change
 file per device). The desktop window is still GridCraft's spreadsheet; until the project views
 arrive (Phase 3), projects are created and edited with `plancraft-cli project`. The scheduler
