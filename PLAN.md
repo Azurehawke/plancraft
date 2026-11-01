@@ -1,9 +1,9 @@
 # PlanCraft — plan
 
-> **Status:** planning only. No code yet. Working name "PlanCraft" until a final name is chosen.
+> **Status:** groundwork starting (2026-11-01). Name: **PlanCraft** (final).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
-> **Last updated:** 2026-10-31
+> **Last updated:** 2026-11-01
 
 ## Goal
 
@@ -168,7 +168,7 @@ a new project. "Skip" at any step creates the project with whatever has been fil
 
 ```
 M:\Jobs\Acme-Network\Acme-Network.plan\
-    project.json             # project id, name, format version
+    Acme-Network.plancraft   # entry file: double-click / Obsidian opens the project (id, name, format version)
     devices\
         laptop.loro          # this device's CRDT changes (only the laptop writes it)
         surface-1.loro
@@ -385,10 +385,10 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 
 ## Open decisions (for planning before work starts)
 
-- [ ] Final app name and repo name
-- [ ] How to bring GridCraft in: import its full history (keeps upstream merges easy) or vendor its crates?
+- [x] App name: PlanCraft; repo Azurehawke/plancraft (decided 2026-11-01)
+- [x] GridCraft comes in with its full git history, `storytold/gridcraft` as `upstream` (decided 2026-11-01)
 - [x] Sync library: Loro, with Automerge as fallback if the phase 1 prototype test fails (decided 2026-10-31)
-- [ ] Project folder extension, layout and entry-file name (e.g. `.plancraft`)
+- [x] Project on disk: `Name.plan\` folder with `Name.plancraft` entry file inside (decided 2026-11-01)
 - [ ] Which MS Project features matter for the first usable version (scope of phase 3)
 - [ ] Desktop-first, or Android in parallel from the start?
 - [ ] Integration with RevuCraft (link tasks to drawing sheets, field photos, site notes)?
