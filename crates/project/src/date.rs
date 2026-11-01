@@ -7,7 +7,8 @@ use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// A calendar date, as in a task's start or a project deadline.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// `Default` is 1970-01-01, only as a last-resort placeholder.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Date(NaiveDate);
 
 /// A date that isn't `YYYY-MM-DD` or doesn't exist (`2026-02-30`).

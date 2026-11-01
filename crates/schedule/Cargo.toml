@@ -1,0 +1,17 @@
+[package]
+name = "plancraft-schedule"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "PlanCraft scheduler: dates from durations, links, constraints and the working calendar; slack and the critical path"
+
+[lints]
+workspace = true
+
+[dependencies]
+plancraft-project = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
