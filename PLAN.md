@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 0 in progress (2026-11-01). Name: **PlanCraft** (final).
+> **Status:** Phase 0 built (2026-11-01): v0.1.0 for Windows, on the `phase-0` branch, awaiting review before `main`. Name: **PlanCraft** (final).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
