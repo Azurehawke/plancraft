@@ -22,5 +22,6 @@ serde_json = { workspace = true }
 log = { workspace = true }
 
 [dev-dependencies]
+gridcraft-engine = { workspace = true }
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
 tempfile = "3"

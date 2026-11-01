@@ -19,6 +19,9 @@ serde_json = { workspace = true }
 log = { workspace = true }
 image = { workspace = true }
 chrono = { workspace = true }
+plancraft-project = { workspace = true }
+plancraft-project-sync = { workspace = true }
+plancraft-shell = { workspace = true }
 
 [build-dependencies]
 # Icon + VERSIONINFO for plancraft.exe; build.rs only uses it when the target is Windows.

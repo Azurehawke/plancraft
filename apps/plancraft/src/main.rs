@@ -28,22 +28,30 @@ use gridcraft_ui_egui::{Services, SheetApp};
 use serde_json::json;
 
 /// The app, its native window per workbook window, and (macOS) the menu bar and Finder events.
-struct App(SheetApp, DocWindows, #[cfg(target_os = "macos")] Option<native_menu::NativeMenu>, #[cfg(target_os = "macos")] fmv_macos_events::Inbox);
+struct App(
+    SheetApp,
+    DocWindows,
+    /// PlanCraft's shell: project tabs, sidebar, Inspector; the spreadsheet UI is one of its tabs.
+    plancraft_shell::Shell,
+    #[cfg(target_os = "macos")] Option<native_menu::NativeMenu>,
+    #[cfg(target_os = "macos")] fmv_macos_events::Inbox,
+);
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         #[cfg(target_os = "macos")]
         {
-            if self.2.is_none() && std::env::var_os("GRIDCRAFT_NO_NATIVE_MENU").is_none() {
-                self.2 = Some(native_menu::NativeMenu::install(ctx));
+            if self.3.is_none() && std::env::var_os("GRIDCRAFT_NO_NATIVE_MENU").is_none() {
+                self.3 = Some(native_menu::NativeMenu::install(ctx));
             }
-            if let Some(m) = &mut self.2 {
+            if let Some(m) = &mut self.3 {
                 m.poll(&mut self.0, ctx, self.1.focused_viewport());
             }
-            apple_events::poll(&self.3, &mut self.0, ctx);
+            apple_events::poll(&self.4, &mut self.0, ctx);
         }
         self.0.logic(ctx);
         self.1.logic(&mut self.0, ctx);
+        shell_logic(&mut self.2, &mut self.0, ctx);
         if ctx.input(|input| input.viewport().close_requested()) && self.0.printing.busy() {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
@@ -54,12 +62,13 @@ impl eframe::App for App {
         // Files dropped on the window open as workbooks.
         for f in std::mem::take(&mut raw.dropped_files) {
             if let Some(p) = f.path().to_str().map(str::to_string).filter(|p| !p.is_empty()) {
-                self.0.open_path(&p);
+                open_file(&mut self.2, &mut self.0, &p);
             }
         }
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        self.1.show(&mut self.0, ui);
+        let (sheet, windows, shell) = (&mut self.0, &mut self.1, &mut self.2);
+        shell.show(ui, &mut |ui| windows.show(sheet, ui));
     }
     fn on_exit(&mut self) {
         print::finish_pending_jobs();
@@ -75,6 +84,76 @@ impl eframe::App for App {
         #[cfg(target_os = "macos")]
         std::process::exit(0);
     }
+}
+
+/// Whether `path` is a PlanCraft project (a `.plancraft` file or a `.plan` folder).
+fn is_project(path: &str) -> bool {
+    let p = std::path::Path::new(path);
+    let ext = p.extension().and_then(std::ffi::OsStr::to_str).map(str::to_ascii_lowercase);
+    matches!(ext.as_deref(), Some("plancraft")) || (p.is_dir() && matches!(ext.as_deref(), Some("plan")))
+}
+
+/// Opens a file from the command line, a drop or a double-click: projects in the shell,
+/// everything else in the spreadsheet tab.
+fn open_file(shell: &mut plancraft_shell::Shell, sheet: &mut SheetApp, path: &str) {
+    if is_project(path) {
+        shell.open_project(std::path::Path::new(path));
+    } else {
+        shell.show_spreadsheet_tab();
+        sheet.open_path(path);
+    }
+}
+
+/// Today's local date for the scheduler.
+#[allow(clippy::disallowed_methods)] // the desktop app has a clock
+fn today() -> plancraft_project::Date {
+    use chrono::Datelike;
+    let n = chrono::Local::now().date_naive();
+    plancraft_project::Date::from_ymd(n.year(), n.month(), n.day()).unwrap_or_default()
+}
+
+/// This computer's device name for project change files, kept in the settings folder (never in
+/// the shared folder). `PLANCRAFT_DEVICE` overrides it.
+fn device_name() -> String {
+    if let Some(d) = std::env::var("PLANCRAFT_DEVICE").ok().filter(|d| !d.trim().is_empty()) {
+        return plancraft_project_sync::sanitize_device_name(&d);
+    }
+    let hint = std::env::var("COMPUTERNAME").or_else(|_| std::env::var("HOSTNAME")).unwrap_or_else(|_| "device".into());
+    match config_dir() {
+        Some(dir) => plancraft_project_sync::device_name(&dir.join("device"), &hint).unwrap_or_else(|e| {
+            log::warn!("device name: {e}");
+            plancraft_project_sync::sanitize_device_name(&hint)
+        }),
+        None => plancraft_project_sync::sanitize_device_name(&hint),
+    }
+}
+
+/// Each frame: file dialogs and spreadsheet requests from the shell, and other devices' saves.
+fn shell_logic(shell: &mut plancraft_shell::Shell, sheet: &mut SheetApp, ctx: &egui::Context) {
+    shell.set_today(today());
+    for r in shell.take_requests() {
+        match r {
+            plancraft_shell::Request::OpenProject => {
+                if let Some(p) = rfd::FileDialog::new().add_filter("PlanCraft project", &["plancraft"]).pick_file() {
+                    shell.open_project(&p);
+                }
+            }
+            plancraft_shell::Request::PickWizardFolder => {
+                if let Some(p) = rfd::FileDialog::new().set_title("Folder for the new project").pick_folder() {
+                    shell.set_wizard_folder(p);
+                }
+            }
+            plancraft_shell::Request::OpenSpreadsheet(path) => {
+                shell.show_spreadsheet_tab();
+                if let Some(p) = path.and_then(|p| p.to_str().map(str::to_string)) {
+                    sheet.open_path(&p);
+                }
+            }
+        }
+    }
+    shell.poll(gridcraft_ui_egui::monotonic_ms());
+    // Keep checking other devices' files while the window is idle.
+    ctx.request_repaint_after(std::time::Duration::from_secs(2));
 }
 
 fn config_dir() -> Option<std::path::PathBuf> {
@@ -324,9 +403,15 @@ fn main() -> eframe::Result<()> {
     // Files named on the command line (a double-click on Windows and Linux) open as File › Open
     // opens them: a password-protected one asks for its password, and errors are shown, not
     // only logged. Each replaces the untouched blank Book1, as a file opened from Finder does.
+    let mut shell = plancraft_shell::Shell::new(&device_name(), if prefs_enabled() { config_dir() } else { None }, today());
     for f in &files {
-        app.open_path(f);
+        open_file(&mut shell, &mut app, f);
     }
+    // A sample or a workbook named on the command line starts on the spreadsheet tab.
+    if sample.is_some() && shell.tabs.is_empty() {
+        shell.show_spreadsheet_tab();
+    }
+    let pending_shell = std::cell::Cell::new(Some(shell));
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("PlanCraft")
         .with_inner_size([1440.0, 900.0])
@@ -393,9 +478,13 @@ fn main() -> eframe::Result<()> {
                     }
                 }
                 let windows = DocWindows::new(&mut app, window_builder.clone(), DocWindows::platform_quits_with_last_window());
+                let Some(shell) = pending_shell.take() else {
+                    return Err("the app was already created".into());
+                };
                 Ok(Box::new(App(
                     app,
                     windows,
+                    shell,
                     #[cfg(target_os = "macos")]
                     None,
                     #[cfg(target_os = "macos")]

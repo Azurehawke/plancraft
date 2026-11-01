@@ -149,3 +149,29 @@ fn renders_gantt_inspector_and_sidebar() {
     let mut empty = Shell::new("laptop", None, d("2026-11-04"));
     render(&mut empty, "start", egui::vec2(1100.0, 650.0), false);
 }
+
+#[test]
+fn renders_the_spreadsheet_ui_inside_a_tab() {
+    // GridCraft's whole window (ribbon, formula bar, grid) drawn in the shell's central area.
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.show_spreadsheet_tab();
+    let mut session = gridcraft_engine::Session::new();
+    session.execute("file.new", json!({"sample": "budget"})).unwrap();
+    let sheet = gridcraft_ui_egui::SheetApp::new(session, Default::default());
+    let mut harness =
+        egui_kittest::Harness::builder().with_size(egui::vec2(1400.0, 800.0)).with_pixels_per_point(1.0).with_max_steps(14).wgpu().build_ui_state(
+            |ui, (shell, sheet): &mut (Shell, gridcraft_ui_egui::SheetApp)| {
+                ui.ctx().set_theme(egui::Theme::Light);
+                let ctx = ui.ctx().clone();
+                sheet.logic(&ctx);
+                shell.show(ui, &mut |ui: &mut Ui| sheet.ui(ui));
+            },
+            (shell, sheet),
+        );
+    harness.run_steps(14);
+    let Ok(img) = harness.render() else { return };
+    if let Some(dir) = std::env::var_os("PLANCRAFT_SNAPSHOT_DIR") {
+        let _ = img.save(std::path::Path::new(&dir).join("spreadsheet-tab.png"));
+    }
+}

@@ -13,18 +13,20 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
     egui::Panel::top("pc_ribbon").exact_size(96.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(8, 4))).show(
         ui,
         |ui| {
-            ui.horizontal(|ui| {
-                let Some(pi) = shell.active_project() else {
+            egui::ScrollArea::horizontal().id_salt("pc_ribbon_scroll").show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let Some(pi) = shell.active_project() else {
+                        file_group(shell, ui, t);
+                        return;
+                    };
                     file_group(shell, ui, t);
-                    return;
-                };
-                file_group(shell, ui, t);
-                sep(ui, t);
-                task_group(shell, ui, t, pi);
-                sep(ui, t);
-                schedule_group(shell, ui, t, pi);
-                sep(ui, t);
-                view_group(shell, ui, t, pi);
+                    sep(ui, t);
+                    task_group(shell, ui, t, pi);
+                    sep(ui, t);
+                    schedule_group(shell, ui, t, pi);
+                    sep(ui, t);
+                    view_group(shell, ui, t, pi);
+                });
             });
         },
     );
