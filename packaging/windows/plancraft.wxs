@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif?>
+  <Package Name="PlanCraft" Manufacturer="Azurehawke" Version="$(var.Version)" UpgradeCode="C51D8C18-75AB-4A86-A87E-28E3AA8A6845" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="PlanCraft project planner" Manufacturer="Azurehawke" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of PlanCraft is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="PlancraftIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="PlancraftIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Azurehawke/plancraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Azurehawke/plancraft" />
+    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+
+    <!-- An explicit command-line value wins. Otherwise retain the previous installation's
+         choice, defaulting to off for a fresh install. Run only in the first sequence so the
+         execute sequence cannot reload the old choice after the user unchecks the box. -->
+    <Property Id="DESKTOPSHORTCUT" Secure="yes" />
+    <Property Id="SAVEDDESKTOPSHORTCUT" Secure="yes">
+      </Property>
+    <SetProperty Id="DESKTOPSHORTCUT" Action="LoadDesktopShortcutPreference" Value="1" After="CraftLoadOption1U" Sequence="first" Condition="NOT DESKTOPSHORTCUT AND SAVEDDESKTOPSHORTCUT = &quot;1&quot;" />
+    <SetProperty Id="DESKTOPSHORTCUT" Action="DefaultDesktopShortcut" Value="0" After="LoadDesktopShortcutPreference" Sequence="first" Condition="NOT DESKTOPSHORTCUT" />
+    <SetProperty Id="DesktopShortcutChoice" Value="1" After="DefaultDesktopShortcut" Sequence="ui" Condition="DESKTOPSHORTCUT = &quot;1&quot;" />
+
+    <Property Id="DefaultUIFont" Value="PlancraftUIFont" />
+    <Property Id="ErrorDialog" Value="PlancraftErrorDlg" />
+    <EnsureTable Id="ListBox" />
+    <UI>
+      <TextStyle Id="PlancraftUIFont" FaceName="Segoe UI" Size="9" />
+      <Dialog Id="DesktopShortcutDlg" Width="320" Height="150" Title="PlanCraft Setup" NoMinimize="yes">
+        <Control Id="Heading" Type="Text" X="15" Y="15" Width="290" Height="20" Text="Install PlanCraft" />
+        <Control Id="Description" Type="Text" X="15" Y="40" Width="290" Height="28" Text="Install PlanCraft using the account option you selected." />
+        <Control Id="DesktopShortcutCheckbox" Type="CheckBox" X="15" Y="76" Width="290" Height="18" Property="DesktopShortcutChoice" CheckBoxValue="1" Text="Create a &amp;desktop shortcut" />
+        <Control Id="Install" Type="PushButton" X="165" Y="118" Width="65" Height="20" Default="yes" DefaultCondition="ALLUSERS = 1" ElevationShield="yes" HideCondition="ALLUSERS &lt;&gt; 1" ShowCondition="ALLUSERS = 1" Text="&amp;Install">
+          <!-- An unchecked checkbox clears its property. Publish an explicit zero so the
+               elevated execute sequence receives an unambiguous opt-out. -->
+          <Publish Property="DESKTOPSHORTCUT" Value="1" Condition="DesktopShortcutChoice" />
+          <Publish Property="DESKTOPSHORTCUT" Value="0" Condition="NOT DesktopShortcutChoice" />
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="InstallUser" Type="PushButton" DefaultCondition="ALLUSERS &lt;&gt; 1" HideCondition="ALLUSERS = 1" ShowCondition="ALLUSERS &lt;&gt; 1" X="165" Y="118" Width="65" Height="20" Text="&amp;Install">
+          <!-- An unchecked checkbox clears its property. Publish an explicit zero so the
+               elevated execute sequence receives an unambiguous opt-out. -->
+          <Publish Property="DESKTOPSHORTCUT" Value="1" Condition="DesktopShortcutChoice" />
+          <Publish Property="DESKTOPSHORTCUT" Value="0" Condition="NOT DesktopShortcutChoice" />
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="240" Y="118" Width="65" Height="20" Cancel="yes" Text="Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+
+      <!-- Windows Installer requires these support dialogs for authored full UI (ICE20).
+           They contain only installer messages and standard response controls. -->
+      <Dialog Id="PlancraftErrorDlg" Width="320" Height="120" Title="PlanCraft Setup" ErrorDialog="yes" NoMinimize="yes">
+        <Control Id="ErrorText" Type="Text" X="15" Y="15" Width="290" Height="65" TabSkip="no" />
+        <Control Id="A" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="Abort" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorAbort" />
+        </Control>
+        <Control Id="C" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="Cancel" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorCancel" />
+        </Control>
+        <Control Id="I" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="Ignore" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorIgnore" />
+        </Control>
+        <Control Id="N" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="No" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorNo" />
+        </Control>
+        <Control Id="O" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="OK" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorOk" />
+        </Control>
+        <Control Id="R" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="Retry" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorRetry" />
+        </Control>
+        <Control Id="Y" Type="PushButton" X="15" Y="90" Width="65" Height="20" Text="Yes" TabSkip="yes">
+          <Publish Event="EndDialog" Value="ErrorYes" />
+        </Control>
+      </Dialog>
+      <Dialog Id="FilesInUse" Width="320" Height="190" Title="PlanCraft Setup" NoMinimize="yes">
+        <Control Id="Description" Type="Text" X="15" Y="15" Width="290" Height="35" Text="Close the applications listed below, then choose Retry. Ignore may require a restart." />
+        <Control Id="Files" Type="ListBox" X="15" Y="55" Width="290" Height="85" Property="FileInUseProcess" />
+        <Control Id="Retry" Type="PushButton" X="95" Y="155" Width="65" Height="20" Default="yes" Text="Retry">
+          <Publish Event="EndDialog" Value="Retry" />
+        </Control>
+        <Control Id="Ignore" Type="PushButton" X="167" Y="155" Width="65" Height="20" Text="Ignore">
+          <Publish Event="EndDialog" Value="Ignore" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="240" Y="155" Width="65" Height="20" Cancel="yes" Text="Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+      <Dialog Id="SetupCompleteDlg" Width="320" Height="110" Title="PlanCraft Setup" NoMinimize="yes">
+        <Control Id="Message" Type="Text" X="15" Y="20" Width="290" Height="35" Text="PlanCraft setup completed." />
+        <Control Id="Close" Type="PushButton" X="240" Y="75" Width="65" Height="20" Default="yes" Cancel="yes" Text="Close">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="SetupCanceledDlg" Width="320" Height="110" Title="PlanCraft Setup" NoMinimize="yes">
+        <Control Id="Message" Type="Text" X="15" Y="20" Width="290" Height="35" Text="PlanCraft setup was canceled." />
+        <Control Id="Close" Type="PushButton" X="240" Y="75" Width="65" Height="20" Default="yes" Cancel="yes" Text="Close">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="SetupFailedDlg" Width="320" Height="110" Title="PlanCraft Setup" NoMinimize="yes">
+        <Control Id="Message" Type="Text" X="15" Y="20" Width="290" Height="35" Text="PlanCraft setup could not finish. See the installer message or log for details." />
+        <Control Id="Close" Type="PushButton" X="240" Y="75" Width="65" Height="20" Default="yes" Cancel="yes" Text="Close">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+    </UI>
+    <InstallUISequence>
+      <!-- Component conditions must see the choice before costing. Do not show the choice
+           during basic/silent installs, repair or uninstall. -->
+      <Show Dialog="DesktopShortcutDlg" Before="CostInitialize" Condition="NOT Installed AND NOT REMOVE AND UILevel = 5" />
+      <Show Dialog="SetupCompleteDlg" OnExit="success" Condition="UILevel = 5" />
+      <Show Dialog="SetupCanceledDlg" OnExit="cancel" Condition="UILevel = 5" />
+      <Show Dialog="SetupFailedDlg" OnExit="error" Condition="UILevel = 5" />
+    </InstallUISequence>
+    <AdminUISequence>
+      <Show Dialog="SetupCompleteDlg" OnExit="success" Condition="UILevel = 5" />
+      <Show Dialog="SetupCanceledDlg" OnExit="cancel" Condition="UILevel = 5" />
+      <Show Dialog="SetupFailedDlg" OnExit="error" Condition="UILevel = 5" />
+    </AdminUISequence>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
+        <Directory Id="INSTALLFOLDER" Name="PlanCraft" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="PlanCraft" Level="1">
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif?>
+      <ComponentGroupRef Id="PlancraftFiles" />
+    </Feature>
+  <Property Id="CRAFT_OPTION_1_M" Secure="yes"><RegistrySearch Id="CRAFT_OPTION_1_MSearch" Root="HKLM" Key="Software\PlanCraft\Installer" Name="DesktopShortcut" Type="raw" />
+    </Property><SetProperty Id="SAVEDDESKTOPSHORTCUT" Action="CraftLoadOption1M" Value="[CRAFT_OPTION_1_M]" After="LaunchConditions" Sequence="both" Condition="ALLUSERS = 1" /><Property Id="CRAFT_OPTION_1_U" Secure="yes"><RegistrySearch Id="CRAFT_OPTION_1_USearch" Root="HKCU" Key="Software\PlanCraft\Installer" Name="DesktopShortcut" Type="raw" />
+    </Property><SetProperty Id="SAVEDDESKTOPSHORTCUT" Action="CraftLoadOption1U" Value="[CRAFT_OPTION_1_U]" After="CraftLoadOption1M" Sequence="both" Condition="ALLUSERS &lt;&gt; 1" /></Package>
+
+  <Fragment>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif?>
+    <ComponentGroup Id="PlancraftFiles" Directory="INSTALLFOLDER">
+      <Component Id="PlancraftApp" Guid="BA4E1CB5-211C-49AC-AD4E-1EE250811B95">
+        <File Id="PlancraftExe" Source="$(var.BinDir)\plancraft.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="PlanCraft" Description="PlanCraft project planner" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="PlancraftIcon.ico" IconIndex="0" />
+        </File>
+
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\plancraft.exe" Value="[#PlancraftExe]" Type="string" />
+
+        <!-- ProgIds: how Explorer opens a file with PlanCraft. Nothing here sets HKCR\.<ext>'s
+             default value, so the user's current default app is left alone. -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Workbook" Value="PlanCraft Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Workbook\DefaultIcon" Value="&quot;[#PlancraftExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Workbook\shell\open\command" Value="&quot;[#PlancraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.TextData" Value="PlanCraft Text Data" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.TextData\DefaultIcon" Value="&quot;[#PlancraftExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.TextData\shell\open\command" Value="&quot;[#PlancraftExe]&quot; &quot;%1&quot;" Type="string" />
+
+        <!-- "Open with": Windows reads only the value names under OpenWithProgids; the data is
+             ignored (WiX rejects an empty Value, so it repeats the ProgId). -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\.xlsx\OpenWithProgids" Name="PlanCraft.Workbook" Value="PlanCraft.Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.xlsm\OpenWithProgids" Name="PlanCraft.Workbook" Value="PlanCraft.Workbook" Type="string" />
+        <!-- .xlsb and .ods are imported (data only) into a new workbook that saves as .xlsx. -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\.xlsb\OpenWithProgids" Name="PlanCraft.Workbook" Value="PlanCraft.Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ods\OpenWithProgids" Name="PlanCraft.Workbook" Value="PlanCraft.Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.csv\OpenWithProgids" Name="PlanCraft.TextData" Value="PlanCraft.TextData" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.tsv\OpenWithProgids" Name="PlanCraft.TextData" Value="PlanCraft.TextData" Type="string" />
+
+        <!-- Settings > Default apps: lets the user pick PlanCraft for these types. -->
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities" Name="ApplicationName" Value="PlanCraft" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities" Name="ApplicationDescription" Value="Open-source spreadsheet for .xlsx, CSV and TSV files" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities\FileAssociations" Name=".xlsx" Value="PlanCraft.Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities\FileAssociations" Name=".xlsm" Value="PlanCraft.Workbook" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities\FileAssociations" Name=".csv" Value="PlanCraft.TextData" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Capabilities\FileAssociations" Name=".tsv" Value="PlanCraft.TextData" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="PlanCraft" Value="Software\PlanCraft\Capabilities" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\PlanCraft" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+      </Component>
+
+      <Component Id="PlancraftCli">
+        <File Id="PlancraftCliExe" Source="$(var.BinDir)\plancraft-cli.exe" KeyPath="yes" />
+      </Component>
+
+      <!-- Persist both on and off, independently of the optional shortcut. AppSearch reads
+           this before MajorUpgrade removes the previous product. -->
+      <Component Id="DesktopShortcutPreference">
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Installer" Name="DesktopShortcut" Value="[DESKTOPSHORTCUT]" Type="string" KeyPath="yes" />
+      </Component>
+      <Component Id="DesktopShortcutComponent" Directory="DesktopFolder" Condition="DESKTOPSHORTCUT = &quot;1&quot;">
+        <Shortcut Id="DesktopShortcut" Name="PlanCraft" Description="PlanCraft project planner" Target="[#PlancraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="PlancraftIcon.ico" IconIndex="0" />
+        <!-- HKMU resolves to HKLM for this per-machine package, so another account can
+             uninstall the marker too. MSI root -1 also satisfies ICE43 for this shortcut. -->
+        <RegistryValue Root="HKMU" Key="Software\PlanCraft\Installer" Name="DesktopShortcutComponent" Value="1" Type="integer" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

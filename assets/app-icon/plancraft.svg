@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- PlanCraft icon: a page with Gantt bars and a milestone, on PlanCraft blue.
+       Original work, drawn in the style of the GridCraft placeholder icon.
+       Palette: ink #0b0b0c, paper #efe9dc, app colour #2b6cd4, accent #f2a93b. -->
+  <defs>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#2b6cd4"/>
+    <g transform="rotate(-6 256 268)" stroke="#0b0b0c" stroke-linejoin="round" stroke-linecap="round">
+      <!-- page with a folded top-right corner -->
+      <path d="M112 76 H336 L404 144 V440 H112 Z" fill="#efe9dc" stroke-width="14"/>
+      <path d="M336 76 V144 H404" fill="none" stroke-width="12"/>
+      <!-- title lines -->
+      <path d="M146 106 H272 M146 130 H232" stroke-width="12"/>
+      <!-- timescale header -->
+      <path d="M112 164 H404 V198 H112 Z" fill="#2b6cd4" stroke="none"/>
+      <path d="M112 164 H404 M112 198 H404 M185 164 V440 M258 164 V440 M331 164 V440" fill="none" stroke-width="6" stroke-opacity="0.45"/>
+      <!-- Gantt bars, each starting where the one before ends -->
+      <rect x="138" y="218" width="104" height="30" rx="8" fill="#2b6cd4" stroke-width="10"/>
+      <rect x="242" y="270" width="78" height="30" rx="8" fill="#2b6cd4" stroke-width="10"/>
+      <rect x="196" y="322" width="150" height="30" rx="8" fill="#f2a93b" stroke-width="10"/>
+      <!-- dependency arrow from the first bar to the second -->
+      <path d="M242 233 H262 V262" fill="none" stroke-width="8"/>
+      <!-- milestone diamond -->
+      <path d="M372 362 L392 386 L372 410 L352 386 Z" fill="#0b0b0c" stroke-width="6"/>
+    </g>
+  </g>
+</svg>

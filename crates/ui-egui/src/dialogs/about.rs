@@ -1,0 +1,26 @@
+use super::Dialog;
+
+/// Help ▸ About GridCraft: the app, its contributors and the AI models that helped. The credits
+/// are compiled in (`crate::credits`, docs/contributors.md).
+pub(super) fn about(ui: &mut egui::Ui, d: &mut Dialog) {
+    ui.horizontal(|ui| {
+        for tab in ["About", "Contributors", "Models"] {
+            if ui.selectable_label(d.tab == tab, tab).clicked() {
+                d.tab = tab.to_string();
+            }
+        }
+    });
+    ui.separator();
+    match d.tab.as_str() {
+        "Contributors" => crate::credits::contributors_ui(ui),
+        "Models" => crate::credits::models_ui(ui),
+        _ => {
+            ui.heading(crate::APP_NAME);
+            ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
+            ui.add_space(4.0);
+            ui.label("Open-source project planning, built on GridCraft by the ArtCraft team.");
+            ui.hyperlink_to("github.com/Azurehawke/plancraft", "https://github.com/Azurehawke/plancraft");
+            ui.hyperlink_to("GridCraft (the spreadsheet it is built on)", "https://github.com/storytold/gridcraft");
+        }
+    }
+}

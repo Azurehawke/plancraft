@@ -1,0 +1,13 @@
+PlanCraft app icon (plancraft.svg and every file derived from it in this directory:
+plancraft-1024.png, plancraft-macos-512.png, plancraft.icns, plancraft.ico, hicolor/).
+
+Original work written for PlanCraft by PlanCraft contributors (simple
+hand-written SVG geometry). No third-party material. Licensed like the rest of PlanCraft, under
+either of
+
+  * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+  * MIT license (https://opensource.org/licenses/MIT)
+
+at your option.
+
+Regenerate the derived files with packaging/icons.sh.

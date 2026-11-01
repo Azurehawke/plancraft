@@ -1,0 +1,150 @@
+{
+  "id": "plancraft",
+  "name": "PlanCraft",
+  "upgradeCode": "C51D8C18-75AB-4A86-A87E-28E3AA8A6845",
+  "sources": [
+    "plancraft.wxs"
+  ],
+  "icon": "assets/app-icon/plancraft.ico",
+  "localization": [],
+  "extensions": [],
+  "payloads": [
+    "plancraft-cli.exe",
+    "plancraft.exe"
+  ],
+  "registry": [
+    [
+      "-1",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\plancraft.exe",
+      "",
+      "[#PlancraftExe]"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.Workbook",
+      "",
+      "PlanCraft Workbook"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.Workbook\\DefaultIcon",
+      "",
+      "\"[#PlancraftExe]\",0"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.Workbook\\shell\\open\\command",
+      "",
+      "\"[#PlancraftExe]\" \"%1\""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.TextData",
+      "",
+      "PlanCraft Text Data"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.TextData\\DefaultIcon",
+      "",
+      "\"[#PlancraftExe]\",0"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.TextData\\shell\\open\\command",
+      "",
+      "\"[#PlancraftExe]\" \"%1\""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.xlsx\\OpenWithProgids",
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.xlsm\\OpenWithProgids",
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.xlsb\\OpenWithProgids",
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.ods\\OpenWithProgids",
+      "PlanCraft.Workbook",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.csv\\OpenWithProgids",
+      "PlanCraft.TextData",
+      "PlanCraft.TextData"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.tsv\\OpenWithProgids",
+      "PlanCraft.TextData",
+      "PlanCraft.TextData"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities",
+      "ApplicationName",
+      "PlanCraft"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities",
+      "ApplicationDescription",
+      "Open-source spreadsheet for .xlsx, CSV and TSV files"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
+      ".xlsx",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
+      ".xlsm",
+      "PlanCraft.Workbook"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
+      ".csv",
+      "PlanCraft.TextData"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Capabilities\\FileAssociations",
+      ".tsv",
+      "PlanCraft.TextData"
+    ],
+    [
+      "-1",
+      "Software\\RegisteredApplications",
+      "PlanCraft",
+      "Software\\PlanCraft\\Capabilities"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Installer",
+      "DesktopShortcut",
+      "[DESKTOPSHORTCUT]"
+    ],
+    [
+      "-1",
+      "Software\\PlanCraft\\Installer",
+      "DesktopShortcutComponent",
+      "#1"
+    ]
+  ],
+  "mode": "dualScope"
+}

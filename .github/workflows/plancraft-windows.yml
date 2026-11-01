@@ -1,0 +1,107 @@
+name: PlanCraft Windows
+
+# Builds PlanCraft for Windows x64: an MSI installer and a portable zip.
+# - Every push to main or a phase-* branch: build and keep the files as a workflow artifact.
+# - A pushed version tag (v0.1.0, v0.2.0-rc.1, …): also publish them as a GitHub release, which
+#   the app's update check reads (assets plancraft-<version>-windows-x64.msi / -portable.zip).
+on:
+  push:
+    branches: [main, "phase-*"]
+    tags: ["v*"]
+    paths-ignore: ["**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plancraft-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Faster CI builds than the full release profile.
+  CARGO_PROFILE_RELEASE_LTO: "false"
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+  CARGO_PROFILE_RELEASE_STRIP: debuginfo
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: plancraft-windows-x64
+
+      - name: Install WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+
+      # Workspace members only (no registry upgrades), so a renamed or re-versioned PlanCraft
+      # crate can't stop the --locked build below. Prints what changed, if anything.
+      - name: Refresh workspace entries in Cargo.lock
+        shell: bash
+        run: |
+          cargo update --workspace
+          git diff --stat Cargo.lock || true
+
+      - name: Build and package
+        shell: pwsh
+        run: |
+          ./packaging/windows/package.ps1 -Arch x64 *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # The log, readable without the Actions log viewer, on the ci-logs-windows branch.
+      - name: Publish the build log
+        if: always()
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/build.log"
+          [ -f "$log" ] || exit 0
+          dir=$(mktemp -d)
+          cp "$log" "$dir/"
+          grep -E "^error(\[E[0-9]+\])?:|Exception|failed" -A12 "$log" | head -c 60000 > "$dir/errors.txt" || true
+          cd "$dir" && git init -q -b ci-logs-windows && git add -A \
+            && git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "PlanCraft Windows build (${GITHUB_SHA::7}, ${GITHUB_REF_NAME}): ${{ job.status }}" \
+            && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-logs-windows
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plancraft-windows-x64
+          path: |
+            dist/release/*.msi
+            dist/release/*.zip
+          if-no-files-found: error
+
+      # A v* tag publishes that tag. A push to main or a phase-* branch publishes v<workspace
+      # version> once: the first build of a version that has no release yet creates it (and its
+      # tag, at this commit); later builds of the same version leave it alone.
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            gh release delete "$tag" --yes || true
+            flags=(--verify-tag)
+          else
+            version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml)
+            tag="v$version"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "$tag is already released; not publishing"
+              exit 0
+            fi
+            flags=(--target "$GITHUB_SHA")
+          fi
+          case "$tag" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$tag" dist/release/*.msi dist/release/*.zip "${flags[@]}" \
+            --title "PlanCraft ${tag#v} for Windows" \
+            --notes "Built from ${GITHUB_SHA::7}. The .msi installs PlanCraft (Start menu, optional desktop shortcut); the portable .zip runs from any folder without installing. The files aren't code-signed, so Windows SmartScreen may ask: choose More info, then Run anyway."
