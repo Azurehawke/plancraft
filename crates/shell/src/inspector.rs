@@ -138,7 +138,9 @@ fn task_props(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, task: &Task
     resources(shell, ui, t, pi, task);
 
     section(ui, t, "Notes");
-    field(shell, ui, pi, "", &k("notes"), &task.notes, true, |v| ("task.set", json!({"task": id, "field": "notes", "value": v})));
+    field(shell, ui, pi, "Notes and site details", &k("notes"), &task.notes, true, |v| {
+        ("task.set", json!({"task": id, "field": "notes", "value": v}))
+    });
     let mut cancelled = task.cancelled;
     if ui.checkbox(&mut cancelled, "Cancelled (kept for history, left out of the schedule)").changed() {
         shell.run(pi, "task.set", json!({"task": id, "field": "cancelled", "value": cancelled.to_string()}));

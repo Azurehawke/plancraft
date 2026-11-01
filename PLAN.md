@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 3 built (2026-11-01): PlanCraft's own window (Obsidian-style shell, Gantt view, sidebar panels, Inspector, new project wizard; spreadsheets as a tab), v0.4.0. Phases 0–2: v0.1.0–v0.3.0.
+> **Status:** Calendar and Board views built (2026-11-01, v0.5.0), on top of Phase 3's window (v0.4.0). Phases 0–2: v0.1.0–v0.3.0.
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -215,7 +215,25 @@ Details and the RevuCraft side are in [`docs/revucraft-integration.md`](docs/rev
   before). `.plancraft` files open PlanCraft on double-click (Windows installer); other devices'
   saves are picked up every 2 s; bookmarks and recent projects are kept per device (`shell.json`).
 - Not yet: the other views in the view switcher (Tracking Gantt, Network Diagram, Resource Sheet,
-  usage views, Calendar, Board), split tabs, document templates in the Explorer, multi-row drag.
+  usage views), split tabs, document templates in the Explorer, multi-row drag.
+
+**Calendar and Board views (built 2026-11-01, v0.5.0):**
+- **Calendar:** a month (Monday first) with each task as a bar across the days it runs, wrapping
+  onto the next week; milestones as diamonds; critical tasks red; non-working days shaded; today
+  ringed; "+n more" when a day is full. Previous/next month, Today, Project start; summary tasks
+  optional. Click a bar for the Inspector; drag it to another day (sets "start no earlier than");
+  double-click a day to add a task starting there.
+- **Board (Kanban):** one card per task (summaries left out) in the project's board columns
+  (default Backlog, To Do, In Progress, Review, Done; renamed per project, 2–12 columns, the last
+  means done). Cards show WBS and summary, name, due date (red when late), people (initials in
+  their colour), progress, and a red edge on the critical path. Drag a card between columns
+  (`task.setStatus`): moving into the last column sets 100%, moving out of it from 100% sets 0%.
+  "Show" limits the board to one summary task; "+ Add card" adds a task into a column.
+- Model: tasks have a `status` (board column); a task without one sits in the column its progress
+  suggests (not started: "To Do", started: "In Progress", 100%: the last column). Board columns
+  live in the project (`board` map), so every device sees the same board.
+- Still for the agile phase (5b): sprints, story points, WIP limits, swimlanes, card order within
+  a column, burndown.
 
 ## Multi-device design
 

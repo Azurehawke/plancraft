@@ -20,6 +20,8 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
+mod board;
+mod calendar;
 mod gantt;
 mod inspector;
 mod project;
@@ -107,7 +109,7 @@ impl View {
 
     /// Built so far (the rest arrive in later phases).
     pub fn available(self) -> bool {
-        matches!(self, View::Gantt)
+        matches!(self, View::Gantt | View::Calendar | View::Kanban)
     }
 }
 
@@ -353,7 +355,11 @@ impl Shell {
             match self.tabs.get(self.active).cloned() {
                 Some(Tab::Spreadsheet) => spreadsheet(ui),
                 Some(Tab::Project { project, view }) => {
-                    if view.available() {
+                    if view == View::Calendar {
+                        calendar::show(self, ui, project);
+                    } else if view == View::Kanban {
+                        board::show(self, ui, project);
+                    } else if view.available() {
                         gantt::show(self, ui, project);
                     } else {
                         coming_soon(ui, &t, view);

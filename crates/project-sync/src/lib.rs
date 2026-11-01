@@ -21,6 +21,7 @@
 //! | `deps` | map | dependency id → map (`pred`, `succ`, `kind`, `lag`) |
 //! | `resources` | map | resource id → map |
 //! | `assignments` | map | assignment id → map (`task`, `resource`, `units`) |
+//! | `board` | map | `columns`: the board's column names, one per line |
 //!
 //! The tree is Loro's movable tree: indenting, outdenting and reordering on two devices at once
 //! merge without duplicating a task or making a task its own ancestor.

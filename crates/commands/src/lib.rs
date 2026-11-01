@@ -33,6 +33,8 @@ pub const CATALOG: &[CommandSpec] = &[
         label: "Task Information",
         params: "{task, field, value}: name duration start finish deadline percent milestone constraint constraint_date priority notes cancelled",
     },
+    CommandSpec { id: "task.setStatus", label: "Move Card", params: "{task, status: column name} (Done sets 100%; leaving Done from 100% sets 0%)" },
+    CommandSpec { id: "board.setColumns", label: "Board Columns", params: "{columns: [names…]} (2–12, left to right; the last means done)" },
     CommandSpec { id: "task.move", label: "Move Task", params: "{task, under?|top?|after?|before?}" },
     CommandSpec { id: "task.moveUp", label: "Move Up", params: "{task}" },
     CommandSpec { id: "task.moveDown", label: "Move Down", params: "{task}" },
@@ -69,6 +71,34 @@ pub fn run(doc: &ProjectDoc, id: &str, params: &Value) -> Result<Value, String> 
             Ok(json!({ "id": new.0 }))
         }
         "task.set" => e(doc.set_task(&task(doc, &p, "task")?, p.str("field")?, p.text("value"))),
+        "task.setStatus" => {
+            let t = task(doc, &p, "task")?;
+            let project = doc.project();
+            let cols = project.columns();
+            let want = p.str("status")?;
+            let col = cols
+                .iter()
+                .find(|c| c.eq_ignore_ascii_case(want.trim()))
+                .ok_or_else(|| format!("no column `{want}` (columns: {})", cols.join(", ")))?;
+            let last = cols.last().is_some_and(|l| l == col);
+            let cur = project.task(&t).map(|x| x.percent_complete).unwrap_or(0);
+            doc.set_task(&t, "status", col).map_err(|e| e.to_string())?;
+            // Keep progress and the board in step.
+            if last && cur < 100 {
+                doc.set_task(&t, "percent", "100").map_err(|e| e.to_string())?;
+            } else if !last && cur >= 100 {
+                doc.set_task(&t, "percent", "0").map_err(|e| e.to_string())?;
+            }
+            Ok(json!({}))
+        }
+        "board.setColumns" => {
+            let cols: Vec<String> = params
+                .get("columns")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                .unwrap_or_default();
+            e(doc.set_board_columns(&cols))
+        }
         "task.move" => {
             let t = task(doc, &p, "task")?;
             let pl = placement(&doc.project(), &p)?.ok_or("say where: under, top, after or before")?;
@@ -227,6 +257,29 @@ mod tests {
         assert_eq!((p.info.title.as_str(), p.assignments.len()), ("Job", 1));
         run(&d, "task.delete", &json!({"task": "1"})).unwrap();
         assert_eq!(names(&d), ["1 C", "2 Done"]);
+    }
+
+    #[test]
+    fn board_status_keeps_progress_in_step() {
+        let d = ProjectDoc::new();
+        run(&d, "task.add", &json!({"name": "A"})).unwrap();
+        let col = |d: &ProjectDoc| {
+            let p = d.project();
+            (p.status_of(&p.tasks[0]), p.tasks[0].percent_complete)
+        };
+        assert_eq!(col(&d), ("To Do".into(), 0));
+        run(&d, "task.set", &json!({"task": "1", "field": "percent", "value": "40"})).unwrap();
+        assert_eq!(col(&d), ("In Progress".into(), 40));
+        run(&d, "task.setStatus", &json!({"task": "1", "status": "done"})).unwrap();
+        assert_eq!(col(&d), ("Done".into(), 100));
+        run(&d, "task.setStatus", &json!({"task": "1", "status": "In Progress"})).unwrap();
+        assert_eq!(col(&d), ("In Progress".into(), 0));
+        assert!(run(&d, "task.setStatus", &json!({"task": "1", "status": "Nope"})).is_err());
+        run(&d, "board.setColumns", &json!({"columns": ["Ideas", " Doing ", "doing", "Shipped"]})).unwrap();
+        assert_eq!(d.project().columns(), ["Ideas", "Doing", "Shipped"]);
+        assert!(run(&d, "board.setColumns", &json!({"columns": ["Only one"]})).is_err());
+        // A status that no longer names a column falls back to progress.
+        assert_eq!(col(&d).0, "Ideas");
     }
 
     #[test]

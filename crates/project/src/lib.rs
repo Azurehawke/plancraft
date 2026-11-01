@@ -32,6 +32,9 @@ pub struct Project {
     pub resources: Vec<Resource>,
     pub assignments: Vec<Assignment>,
     pub calendar: Calendar,
+    /// The board's columns, left to right.
+    #[serde(default = "default_columns")]
+    pub board_columns: Vec<String>,
 }
 
 /// The project-level information the new project wizard asks for.
@@ -121,6 +124,9 @@ pub struct Task {
     pub cancelled: bool,
     /// Where the task came from when another app made it, e.g. `revucraft:<pdf>#nm=<name>`.
     pub source: String,
+    /// The board column the task's card is in (empty: worked out from % complete, see
+    /// [`Project::status_of`]).
+    pub status: String,
 }
 
 /// When a task may be scheduled.
@@ -301,7 +307,36 @@ impl Calendar {
     }
 }
 
+/// The board columns a new project starts with.
+pub const DEFAULT_COLUMNS: [&str; 5] = ["Backlog", "To Do", "In Progress", "Review", "Done"];
+
+fn default_columns() -> Vec<String> {
+    DEFAULT_COLUMNS.iter().map(|s| s.to_string()).collect()
+}
+
 impl Project {
+    /// The board's columns (the defaults when none are set). The last column means done.
+    pub fn columns(&self) -> Vec<String> {
+        if self.board_columns.is_empty() { default_columns() } else { self.board_columns.clone() }
+    }
+
+    /// The board column a task is in: its own status when that names a column, otherwise from its
+    /// progress: done (100%) is the last column; started is a column named like "In Progress" or
+    /// "Doing" (else the middle one); not started is one named like "To Do" (else the first).
+    pub fn status_of(&self, t: &Task) -> String {
+        let cols = self.columns();
+        if let Some(c) = cols.iter().find(|c| c.eq_ignore_ascii_case(t.status.trim())) {
+            return c.clone();
+        }
+        let named = |words: &[&str]| cols.iter().find(|c| words.iter().any(|w| c.to_lowercase().replace(['-', ' '], "").contains(w))).cloned();
+        let pick = match t.percent_complete {
+            0 => named(&["todo", "ready"]).or_else(|| cols.first().cloned()),
+            100.. => cols.last().cloned(),
+            _ => named(&["progress", "doing", "active"]).or_else(|| cols.get(cols.len() / 2).cloned()),
+        };
+        pick.unwrap_or_default()
+    }
+
     /// The task with this id.
     pub fn task(&self, id: &TaskId) -> Option<&Task> {
         self.tasks.iter().find(|t| &t.id == id)
