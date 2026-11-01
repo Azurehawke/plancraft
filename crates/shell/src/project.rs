@@ -26,6 +26,12 @@ pub struct OpenProject {
     pub table_w: f32,
     /// The row being edited in place: (task, column, text).
     pub editing: Option<(TaskId, &'static str, String)>,
+    /// The month the Calendar view shows (year, month); `None` follows the project start.
+    pub cal_month: Option<(i32, u32)>,
+    /// The Calendar view shows summary tasks too.
+    pub cal_summaries: bool,
+    /// The Board shows only the tasks under this summary task.
+    pub board_under: Option<TaskId>,
     last_poll: f64,
 }
 
@@ -48,6 +54,9 @@ impl OpenProject {
             scroll_days: -1.0,
             table_w: 470.0,
             editing: None,
+            cal_month: None,
+            cal_summaries: false,
+            board_under: None,
             last_poll: 0.0,
         }
     }

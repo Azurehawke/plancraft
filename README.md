@@ -17,7 +17,7 @@ spreadsheet by the ArtCraft team, and keeps GridCraft's engine, command system, 
 
 ## Status
 
-**Phase 3 (the PlanCraft window).** PlanCraft opens in its own Obsidian-style window: sidebar panels, tabs, a Gantt chart with the critical path, an Inspector, and an optional new project wizard; spreadsheets open in a tab. Projects live in `.plan` folders that several devices edit and merge (Phase 1); dates, slack and the critical path come from the scheduler (Phase 2). `plancraft-cli project` still works for scripting.
+**Phase 3 (the PlanCraft window).** PlanCraft opens in its own Obsidian-style window: sidebar panels, tabs, a Gantt chart with the critical path, a Calendar, a Kanban Board, an Inspector, and an optional new project wizard; spreadsheets open in a tab. Projects live in `.plan` folders that several devices edit and merge (Phase 1); dates, slack and the critical path come from the scheduler (Phase 2). `plancraft-cli project` still works for scripting.
 
 ## Download
 

@@ -175,3 +175,23 @@ fn renders_the_spreadsheet_ui_inside_a_tab() {
         let _ = img.save(std::path::Path::new(&dir).join("spreadsheet-tab.png"));
     }
 }
+
+#[test]
+fn renders_calendar_and_board() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.run(0, "task.setStatus", json!({"task": "2.1", "status": "In Progress"})).unwrap();
+    shell.run(0, "task.setStatus", json!({"task": "2.3", "status": "Review"})).unwrap();
+    shell.run(0, "task.setStatus", json!({"task": "3.1", "status": "Backlog"})).unwrap();
+    shell.run(0, "resource.set", json!({"resource": "Tech 1", "field": "color", "value": "#f2a93b"})).unwrap();
+    shell.tabs[0] = Tab::Project { project: 0, view: View::Calendar };
+    shell.projects[0].cal_month = Some((2026, 11));
+    render(&mut shell, "calendar", egui::vec2(1500.0, 820.0), false);
+    shell.tabs[0] = Tab::Project { project: 0, view: View::Kanban };
+    let pick = shell.projects[0].project.find_task("2.2").unwrap().id.clone();
+    shell.projects[0].select_only(pick);
+    render(&mut shell, "board", egui::vec2(1600.0, 820.0), false);
+    let p = &shell.projects[0].project;
+    let done: Vec<&str> = p.tasks.iter().filter(|t| !t.summary && p.status_of(t) == "Done").map(|t| t.name.as_str()).collect();
+    assert_eq!(done, ["Walk the site"], "100% tasks sit in Done");
+}

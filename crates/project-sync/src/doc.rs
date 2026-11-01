@@ -14,6 +14,8 @@ const TASKS: &str = "tasks";
 const DEPS: &str = "deps";
 const RESOURCES: &str = "resources";
 const ASSIGNMENTS: &str = "assignments";
+const BOARD: &str = "board";
+const MAX_COLUMNS: usize = 12;
 
 /// Upper bounds for values read from files or typed by people (hostile input).
 const MAX_DURATION_MINUTES: i64 = 100 * 365 * 24 * 60;
@@ -99,7 +101,37 @@ impl ProjectDoc {
             resources: self.resources(),
             assignments: self.assignments(),
             calendar: self.calendar(),
+            board_columns: self.board_columns(),
         }
+    }
+
+    fn board_columns(&self) -> Vec<String> {
+        let raw = text(&self.map(BOARD), "columns");
+        let cols: Vec<String> = raw.lines().map(str::trim).filter(|c| !c.is_empty()).map(str::to_string).take(MAX_COLUMNS).collect();
+        if cols.is_empty() { plancraft_project::DEFAULT_COLUMNS.iter().map(|c| c.to_string()).collect() } else { cols }
+    }
+
+    /// Sets the board's columns, left to right (the last one means done). Names are trimmed; empty
+    /// and repeated names are dropped.
+    pub fn set_board_columns(&self, columns: &[String]) -> Result<()> {
+        let mut seen: Vec<String> = Vec::new();
+        for c in columns.iter().map(|c| c.trim()).filter(|c| !c.is_empty()) {
+            if c.contains('\n') || c.len() > 60 {
+                return Err(Error::BadValue {
+                    field: "columns".into(),
+                    reason: format!("`{c}` is not a column name (one line, at most 60 characters)"),
+                });
+            }
+            if !seen.iter().any(|s| s.eq_ignore_ascii_case(c)) {
+                seen.push(c.to_string());
+            }
+        }
+        if seen.len() < 2 || seen.len() > MAX_COLUMNS {
+            return Err(Error::BadValue { field: "columns".into(), reason: format!("a board needs 2 to {MAX_COLUMNS} columns") });
+        }
+        self.map(BOARD).insert("columns", seen.join("\n"))?;
+        self.doc.commit();
+        Ok(())
     }
 
     fn info(&self) -> ProjectInfo {
@@ -436,7 +468,7 @@ impl ProjectDoc {
         let node = self.node(id)?;
         let m = self.tree().get_meta(node)?;
         match field {
-            "name" | "notes" | "source" => put_text(&m, field, value)?,
+            "name" | "notes" | "source" | "status" => put_text(&m, field, value)?,
             "start" | "finish" | "deadline" | "constraint_date" => put_date(&m, field, value)?,
             "milestone" | "cancelled" => match parse_bool(value) {
                 Some(b) => m.insert(field, b)?,
@@ -612,6 +644,7 @@ fn read_task(id: TaskId, parent: Option<TaskId>, level: u32, wbs: String, summar
         notes: text(m, "notes"),
         cancelled: truthy(m, "cancelled"),
         source: text(m, "source"),
+        status: text(m, "status"),
     }
 }
 
