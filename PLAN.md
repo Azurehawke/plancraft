@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 2 built (2026-11-01): scheduler (critical path, calendar, constraints, slack) in `plancraft-schedule`, shown by `plancraft-cli project show/schedule` (v0.3.0). Phases 0–1: v0.1.0, v0.2.0. Name: **PlanCraft** (final).
+> **Status:** Phase 3 built (2026-11-01): PlanCraft's own window (Obsidian-style shell, Gantt view, sidebar panels, Inspector, new project wizard; spreadsheets as a tab), v0.4.0. Phases 0–2: v0.1.0–v0.3.0.
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -199,6 +199,23 @@ Details and the RevuCraft side are in [`docs/revucraft-integration.md`](docs/rev
   writing its own Loro change file in the project's `devices\` folder now that Loro is chosen.
   To be settled with the RevuCraft session.
 - Stable task ids (not WBS codes) for links in both directions.
+
+**As built (Phase 3, `crates/commands`, `crates/shell`):**
+- `plancraft-commands`: every project action is a command id with JSON parameters (`task.add`,
+  `task.indent`, `task.link`, `project.setInfo`…), used by the ribbon, Gantt, Inspector and wizard.
+- `plancraft-shell`: tab strip; project ribbon (Project, Task, Schedule, View groups); left icon rail
+  with Explorer, Search, Bookmarks, Outline, Filters, Recent, Sync; right Inspector (task
+  properties, links, resources, notes; Project Information when no task is selected); Gantt view
+  (task table with WBS, in-place editing, collapse; timescale with working/non-working days,
+  critical path, progress, links, milestones, today line; drag a bar to move it — sets "start no
+  earlier than" — or its end to change the duration; zoom and scroll); keyboard (Insert, Delete,
+  F2, arrows, Alt+Shift+←/→); the optional new project wizard (six steps, Skip and create;
+  stakeholders become resources).
+- The desktop app opens in the shell; spreadsheets open in a Spreadsheet tab (GridCraft's UI, as
+  before). `.plancraft` files open PlanCraft on double-click (Windows installer); other devices'
+  saves are picked up every 2 s; bookmarks and recent projects are kept per device (`shell.json`).
+- Not yet: the other views in the view switcher (Tracking Gantt, Network Diagram, Resource Sheet,
+  usage views, Calendar, Board), split tabs, document templates in the Explorer, multi-row drag.
 
 ## Multi-device design
 
@@ -436,7 +453,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 0 ✅ | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
 | 1 ✅ | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 ✅ | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
-| 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
+| 3 ✅ | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 3b | RevuCraft link (setting, punch items → tasks, plan → RevuCraft) | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |

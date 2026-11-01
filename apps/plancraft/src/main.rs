@@ -530,7 +530,9 @@ mod packaging_tests {
         let plist = include_str!("../../../packaging/macos/Info.plist.in");
         let wxs = include_str!("../../../packaging/windows/plancraft.wxs");
         let mac = extensions(plist, "<key>CFBundleTypeExtensions</key>", "<string>", '<');
-        let win = extensions(wxs, "Key=\"Software\\Classes\\.", "", '\\');
+        // Spreadsheet types only: `.plancraft` (PlanCraft's own project file) is registered on
+        // Windows as the default app for it, and opens in the shell, not the spreadsheet.
+        let win: Vec<String> = extensions(wxs, "Key=\"Software\\Classes\\.", "", '\\').into_iter().filter(|e| !e.starts_with("plancraft")).collect();
         assert!(mac.iter().any(|e| e == "xlsx"), "Info.plist.in extensions not found: {mac:?}");
         assert_eq!(mac, win);
         for ext in &mac {

@@ -17,13 +17,7 @@ spreadsheet by the ArtCraft team, and keeps GridCraft's engine, command system, 
 
 ## Status
 
-**Phase 2 (scheduler).** Dates, slack and the critical path are computed from durations, links, constraints and the working calendar (`plancraft-cli project schedule`). Phase 1 (project files and sync): Projects, their tasks, links, resources and calendar are
-stored in a `.plan` folder that several devices can edit offline and merge (Loro CRDT, one change
-file per device). The desktop window is still GridCraft's spreadsheet; until the project views
-arrive (Phase 3), projects are created and edited with `plancraft-cli project`. The scheduler
-comes in Phase 2.
-The full plan, decisions and phases are in [`PLAN.md`](PLAN.md); the RevuCraft integration notes
-are in [`docs/revucraft-integration.md`](docs/revucraft-integration.md).
+**Phase 3 (the PlanCraft window).** PlanCraft opens in its own Obsidian-style window: sidebar panels, tabs, a Gantt chart with the critical path, an Inspector, and an optional new project wizard; spreadsheets open in a tab. Projects live in `.plan` folders that several devices edit and merge (Phase 1); dates, slack and the critical path come from the scheduler (Phase 2). `plancraft-cli project` still works for scripting.
 
 ## Download
 
