@@ -1,0 +1,15 @@
+[package]
+name = "plancraft-commands"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "PlanCraft commands: every project action as an id with JSON parameters, for the UI, CLI and agents"
+
+[lints]
+workspace = true
+
+[dependencies]
+plancraft-project = { workspace = true }
+plancraft-project-sync = { workspace = true }
+serde_json = { workspace = true }

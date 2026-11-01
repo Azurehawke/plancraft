@@ -15,6 +15,36 @@
   "registry": [
     [
       "-1",
+      "Software\\Classes\\PlanCraft.Project",
+      "",
+      "PlanCraft Project"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.Project\\DefaultIcon",
+      "",
+      "\"[#PlancraftExe]\",0"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\PlanCraft.Project\\shell\\open\\command",
+      "",
+      "\"[#PlancraftExe]\" \"%1\""
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.plancraft",
+      "",
+      "PlanCraft.Project"
+    ],
+    [
+      "-1",
+      "Software\\Classes\\.plancraft\\OpenWithProgids",
+      "PlanCraft.Project",
+      "PlanCraft.Project"
+    ],
+    [
+      "-1",
       "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\plancraft.exe",
       "",
       "[#PlancraftExe]"

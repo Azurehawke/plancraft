@@ -1,0 +1,27 @@
+[package]
+name = "plancraft-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "PlanCraft's Obsidian-style shell: sidebar panels, document tabs, the project views (Gantt), the Inspector and the new project wizard; hosts GridCraft's spreadsheet UI as a tab"
+
+[lints]
+workspace = true
+
+[dependencies]
+plancraft-project = { workspace = true }
+plancraft-project-sync = { workspace = true }
+plancraft-schedule = { workspace = true }
+plancraft-commands = { workspace = true }
+gridcraft-ui-egui = { workspace = true }
+craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "c5a1cbfb5f9049f9270955caffb5bee5997aebf7" }
+egui = { workspace = true, features = ["default_fonts"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+gridcraft-engine = { workspace = true }
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
+tempfile = "3"

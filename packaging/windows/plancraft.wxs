@@ -168,6 +168,14 @@
         <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.TextData\DefaultIcon" Value="&quot;[#PlancraftExe]&quot;,0" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.TextData\shell\open\command" Value="&quot;[#PlancraftExe]&quot; &quot;%1&quot;" Type="string" />
 
+        <!-- PlanCraft projects: double-clicking a .plancraft entry file opens the project. PlanCraft
+             is the only app for this type, so it is also the default (HKMU\Software\Classes\.plancraft). -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Project" Value="PlanCraft Project" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Project\DefaultIcon" Value="&quot;[#PlancraftExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PlanCraft.Project\shell\open\command" Value="&quot;[#PlancraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.plancraft" Value="PlanCraft.Project" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.plancraft\OpenWithProgids" Name="PlanCraft.Project" Value="PlanCraft.Project" Type="string" />
+
         <!-- "Open with": Windows reads only the value names under OpenWithProgids; the data is
              ignored (WiX rejects an empty Value, so it repeats the ProgId). -->
         <RegistryValue Root="HKMU" Key="Software\Classes\.xlsx\OpenWithProgids" Name="PlanCraft.Workbook" Value="PlanCraft.Workbook" Type="string" />
