@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 0 built (2026-11-01): v0.1.0 for Windows, on the `phase-0` branch, awaiting review before `main`. Name: **PlanCraft** (final).
+> **Status:** Phase 1 built (2026-11-01): project model, Loro sync and folder format, usable through `plancraft-cli project` (v0.2.0); Phase 0 is v0.1.0. Name: **PlanCraft** (final).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -34,9 +34,9 @@ devices, including offline, and the edits merge cleanly.
 
 | Crate | Layer | Purpose |
 |---|---|---|
-| `project-model` | L2 | Tasks, WBS outline, dependencies, calendars, resources, assignments, baselines, custom fields |
+| `project-model` (`plancraft-project`, built) | L2 | Tasks, WBS outline, dependencies, calendars, resources, assignments (built); baselines, custom fields (later phases) |
 | `schedule` | L2 | Critical path scheduler: forward/backward pass, slack, constraints, summary rollups; later resource leveling |
-| `project-sync` | L2 | CRDT document (Loro), per-device change files, merge on open, file watching |
+| `project-sync` (`plancraft-project-sync`, built) | L2 | CRDT document (Loro), per-device change files, merge on open, reload of changed files (live file watching comes with the app's views) |
 | `mspdi` | L2 | MS Project XML (MSPDI) import and export |
 | Project commands | L5 | `project.*` / `task.*` / `resource.*` / `baseline.*` command families in the engine |
 | Project views | L6 | Gantt, Network Diagram, Resource Sheet, Task Usage, Resource Usage, Tracking Gantt, Calendar |
@@ -234,6 +234,35 @@ the WebAssembly build, with acceptable file sizes and load times. If it fails, s
 (MIT) before anything else depends on the sync layer; Automerge would need app-level code for
 moves and tree-loop repair.
 
+**Prototype result (2026-11-01): passed; Loro stays.** `crates/project-sync/tests/merge_prototype.rs`
+(Loro 1.17.1): a 3,110-task job (3,000 tasks, 110 summaries, 3,000 links, 3,000 assignments)
+edited offline on three devices with deliberate clashes, then synced Syncthing-style in
+different orders and partially:
+
+| Clash | Result |
+|---|---|
+| Crossed moves (X under Y here, Y under X there) | One move wins; never a loop |
+| Same field, different values | One value wins, the same on every device |
+| Different fields of one task | Both edits kept |
+| Delete a summary here, edit/add under it there | The delete wins (subtasks go with it) |
+| Same tasks reordered differently | No task duplicated or lost |
+| 50 tasks added at the same place on each device | All 150 kept, in one order everywhere |
+| Crossed links / link to a task deleted elsewhere | Kept and reported as problems (loop, dangling link) |
+| Plus 1,500 seeded random edits per device | All three devices end identical |
+
+Merging every order of the device files gives the same project; a half-synced file is skipped and
+picked up on the next reload. Numbers (release build): open + merge three device files ≈ 0.14 s;
+each device file ≈ 970 KB for the 3,110-task job with its full edit history.
+WebAssembly: the crates are checked for `wasm32` in CI (`cargo xtask wasm`); running the merge
+tests inside a browser waits for the Obsidian plugin phase.
+
+**As built (Phase 1):** each device's file is a full Loro snapshot of everything that device knows
+(any one file rebuilds the project; files are merged, never overwritten by another device). Every
+session edits as a fresh random Loro peer, so two windows on one device can't be confused for one
+editor; before saving, a device re-reads its own file so a second window's save isn't lost.
+Writes go to a `.syncthing.*.tmp` file then are renamed into place (Syncthing ignores those names).
+Compaction (shallow snapshots) is left for when files grow.
+
 The same pattern could later be backported to RevuCraft if it uses one shared file.
 
 ## Documents and templates
@@ -395,8 +424,8 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 
 | # | Phase | Done when |
 |---|---|---|
-| 0 | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
-| 1 | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
+| 0 ✅ | Repo setup: import GridCraft's history into this repo, add `upstream`, rename app/binaries, keep shared crates untouched | Builds and runs as PlanCraft on Windows |
+| 1 ✅ | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
 | 3b | RevuCraft link (setting, punch items → tasks, plan → RevuCraft) | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |

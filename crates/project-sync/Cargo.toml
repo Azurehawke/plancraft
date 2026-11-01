@@ -1,0 +1,21 @@
+[package]
+name = "plancraft-project-sync"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "PlanCraft project files: a Loro CRDT document per project, one change file per device in a shared folder, merged on open"
+
+[lints]
+workspace = true
+
+[dependencies]
+plancraft-project = { workspace = true }
+loro = { version = "1.17", default-features = false }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

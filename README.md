@@ -17,8 +17,11 @@ spreadsheet by the ArtCraft team, and keeps GridCraft's engine, command system, 
 
 ## Status
 
-**Phase 0 (groundwork).** The app builds and runs as PlanCraft; it is still GridCraft's
-spreadsheet inside. The project model, sync, scheduler and Gantt come in the next phases.
+**Phase 1 (project files and sync).** Projects, their tasks, links, resources and calendar are
+stored in a `.plan` folder that several devices can edit offline and merge (Loro CRDT, one change
+file per device). The desktop window is still GridCraft's spreadsheet; until the project views
+arrive (Phase 3), projects are created and edited with `plancraft-cli project`. The scheduler
+comes in Phase 2.
 The full plan, decisions and phases are in [`PLAN.md`](PLAN.md); the RevuCraft integration notes
 are in [`docs/revucraft-integration.md`](docs/revucraft-integration.md).
 
@@ -28,6 +31,22 @@ Windows builds are on the [Releases](https://github.com/Azurehawke/plancraft/rel
 `plancraft-<version>-windows-x64.msi` (installer) or `…-portable.zip` (no install). They aren't
 code-signed yet, so SmartScreen may ask: choose **More info**, then **Run anyway**. The app checks
 this repository for updates.
+
+## Try a project on two devices
+
+With PlanCraft installed on two Windows devices that share a folder through Syncthing (the CLI is
+`plancraft-cli.exe`, next to `plancraft.exe` in the install folder (`Program Files\ArtCraft\PlanCraft`, or `%LOCALAPPDATA%\Programs\ArtCraft\PlanCraft` for a per-user install) or the portable zip):
+
+```powershell
+plancraft-cli project new M:\Jobs "Test Job"                  # on the laptop
+plancraft-cli project add "M:\Jobs\Test Job.plan" Survey
+plancraft-cli project add "M:\Jobs\Test Job.plan" "Walk the site" --under 1 --duration 4h
+plancraft-cli project show "M:\Jobs\Test Job.plan"
+```
+
+Then, with either device offline, edit on both (`project set`, `add`, `move`, `link`…), let
+Syncthing sync, and run `project show` on each: both show the same merged project.
+`plancraft-cli project help` lists every command; `project devices` shows each device's file.
 
 ## Build
 
