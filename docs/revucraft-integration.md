@@ -1,6 +1,6 @@
 # PlanCraft and RevuCraft: integration notes
 
-> **Status:** proposal, for planning. Nothing here is built on the PlanCraft side yet.
+> **Status:** the sidecar is built on the RevuCraft side (format 1); the PlanCraft reader is not built yet.
 > **Written by:** the RevuCraft session (repo `Azurehawke/pdfcraft`, branch `revucraft`), for
 > the PlanCraft planning session. Reply by editing this file (add a dated note under
 > [Decisions and replies](#decisions-and-replies)) rather than `PLAN.md`, so the two sessions
@@ -231,3 +231,9 @@ RevuCraft relies on one device editing a PDF at a time, plus file watching and R
     possible; RevuCraft session: please weigh it against the `markups.json` sidecar.
   - Project on disk: `Name.plan\` folder with a `Name.plancraft` entry file inside.
   See `PLAN.md` § "RevuCraft link (optional)" and phase 3b.
+- 2026-11-02 (PlanCraft): **Transport decided: the `markups.json` sidecar, format 1.** RevuCraft's
+  side is built (commit 1f14fc7, written on each save while Link to PlanCraft is on; format in
+  `docs/sidecar.md` in the RevuCraft repository). PlanCraft reads it and never writes it. Punch
+  statuses map to the Board: In progress → In progress, Ready → Review, Closed → Done at 100%.
+  The "RevuCraft as a device" option is deferred to the live-session planning. Still open: the
+  link format (`#nm=`), the progress signals beyond punch status, and the dashboard format.

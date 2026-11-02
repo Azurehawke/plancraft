@@ -195,9 +195,10 @@ Details and the RevuCraft side are in [`docs/revucraft-integration.md`](docs/rev
   RevuCraft and shown in PlanCraft with "Edit in RevuCraft"; scheduling fields (WBS position,
   dependencies, duration, baselines) are PlanCraft's.
 - **Punch deleted in RevuCraft:** the task is marked cancelled, not deleted, so history is kept.
-- **Transport:** RevuCraft's `markups.json` sidecar (per the integration notes), or RevuCraft
-  writing its own Loro change file in the project's `devices\` folder now that Loro is chosen.
-  To be settled with the RevuCraft session.
+- **Transport:** RevuCraft's `markups.json` sidecar, format 1 (`docs/sidecar.md` in the RevuCraft
+  repository). Built on the RevuCraft side (commit 1f14fc7, 2026-11-01): written on each save while
+  Link to PlanCraft is on. PlanCraft reads it and never writes it. The "RevuCraft as a Loro device"
+  option is deferred until the live-session work is planned.
 - Stable task ids (not WBS codes) for links in both directions.
 
 **As built (Phase 3, `crates/commands`, `crates/shell`):**
@@ -496,7 +497,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 - [ ] Which MS Project features matter for the first usable version (scope of phase 3)
 - [ ] Desktop-first, or Android in parallel from the start?
 - [x] RevuCraft: optional link in Settings; PlanCraft stays standalone; punch items become tasks automatically (decided 2026-11-01)
-- [ ] RevuCraft link transport: `markups.json` sidecar or RevuCraft as a Loro "device"; plus the open questions in `docs/revucraft-integration.md`
+- [x] RevuCraft link transport: `markups.json` sidecar, format 1 (decided 2026-11-02; RevuCraft side built). Open questions remain in `docs/revucraft-integration.md`
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
 - [x] Interface layout: Obsidian-style shell (decided 2026-10-27)
