@@ -195,3 +195,64 @@ fn renders_calendar_and_board() {
     let done: Vec<&str> = p.tasks.iter().filter(|t| !t.summary && p.status_of(t) == "Done").map(|t| t.name.as_str()).collect();
     assert_eq!(done, ["Walk the site"], "100% tasks sit in Done");
 }
+
+#[test]
+fn a_linked_drawings_punch_list_becomes_tasks_and_follows_its_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.set_revucraft_link(true);
+    // RevuCraft's job folder for "Floor/Plan.pdf" is "Floor/Plan/", beside the PDF.
+    let pdf = dir.path().join("Floor").join("Plan.pdf");
+    assert!(shell.link_drawing(&pdf));
+    assert_eq!(shell.projects[0].project.drawings, ["Floor/Plan.pdf"]);
+    let markups = dir.path().join("Floor").join("Plan").join("markups.json");
+    std::fs::create_dir_all(markups.parent().unwrap()).unwrap();
+    let punch = r#"{"format":"revucraft-markups","version":1,"punch":[{"name":"n1","no":1,"assignee":"Tech 1","due":"2026-11-10","status":"Open"}]}"#;
+    std::fs::write(&markups, punch).unwrap();
+    shell.poll(1e9);
+    let p = &shell.projects[0].project;
+    let t = p.tasks.iter().find(|t| t.source == "revucraft:Floor/Plan.pdf#nm=n1").unwrap();
+    assert_eq!((t.name.as_str(), t.deadline.map(|d| d.to_string())), ("Punch #1", Some("2026-11-10".into())));
+    assert!(p.assignments.iter().any(|a| a.task == t.id), "assigned to the named person");
+    // A file nobody changed is not read again.
+    let before = shell.projects[0].project.clone();
+    shell.poll(2e9);
+    assert_eq!(shell.projects[0].project, before);
+    // With the link off, changes are not brought in.
+    shell.set_revucraft_link(false);
+    std::fs::write(&markups, punch.replace("Open", "Closed")).unwrap();
+    shell.poll(3e9);
+    let t = shell.projects[0].project.tasks.iter().find(|t| t.source.ends_with("#nm=n1")).unwrap();
+    assert_eq!(t.status, "To Do");
+    // Turning it back on reads the punch list again: closed in RevuCraft means done here.
+    shell.set_revucraft_link(true);
+    let t = shell.projects[0].project.tasks.iter().find(|t| t.source.ends_with("#nm=n1")).unwrap();
+    assert_eq!((t.status.as_str(), t.percent_complete), ("Done", 100));
+}
+
+#[test]
+fn a_drawing_outside_the_job_folder_is_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let elsewhere = tempfile::tempdir().unwrap();
+    assert!(!shell.link_drawing(&elsewhere.path().join("Plan.pdf")));
+    assert!(shell.projects[0].project.drawings.is_empty());
+    assert!(shell.message.as_deref().is_some_and(|m| m.contains("job folder")));
+}
+
+#[test]
+fn renders_a_punch_task_from_revucraft() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.set_revucraft_link(true);
+    let pdf = dir.path().join("Floor").join("Plan.pdf");
+    assert!(shell.link_drawing(&pdf));
+    let markups = dir.path().join("Floor").join("Plan").join("markups.json");
+    std::fs::create_dir_all(markups.parent().unwrap()).unwrap();
+    let punch = r#"{"format":"revucraft-markups","version":1,"punch":[{"name":"n1","no":3,"assignee":"Electrician","due":"2026-11-10","status":"InProgress"},{"name":"n2","no":4,"assignee":"Tech 1","due":"2026-11-12","status":"Open"}]}"#;
+    std::fs::write(&markups, punch).unwrap();
+    shell.poll(1e9);
+    let pick = shell.projects[0].project.tasks.iter().find(|t| t.source.ends_with("#nm=n1")).unwrap().id.clone();
+    shell.projects[0].select_only(pick);
+    render(&mut shell, "revucraft-punch", egui::vec2(1500.0, 820.0), false);
+}

@@ -72,7 +72,16 @@ fn task_props(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, task: &Task
         .color(t.text_dim)
         .size(12.0),
     );
-    field(shell, ui, pi, "Name", &k("name"), &task.name, false, |v| ("task.set", json!({"task": id, "field": "name", "value": v})));
+    // A punch item's name, due date, assignee and status belong to RevuCraft: shown here, edited there.
+    let from_rc = task.source.starts_with("revucraft:");
+    if from_rc {
+        let drawing = task.source.trim_start_matches("revucraft:").split("#nm=").next().unwrap_or_default().to_string();
+        ui.label(RichText::new(format!("From RevuCraft: punch item in {drawing}")).color(t.text_dim).size(12.0));
+        ui.label(RichText::new("Edit its name, due date, assignee and status in RevuCraft.").color(t.text_dim).size(11.5));
+    }
+    ui.add_enabled_ui(!from_rc, |ui| {
+        field(shell, ui, pi, "Name", &k("name"), &task.name, false, |v| ("task.set", json!({"task": id, "field": "name", "value": v})));
+    });
 
     let dates = shell.projects.get(pi).and_then(|p| p.schedule.get(&task.id).cloned());
     if let Some(d) = &dates {
@@ -102,7 +111,7 @@ fn task_props(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, task: &Task
         });
         let mut pct = f32::from(task.percent_complete);
         let l = ui.label(RichText::new("% complete").size(12.0));
-        let r = ui.add(egui::Slider::new(&mut pct, 0.0..=100.0).step_by(5.0).suffix("%").show_value(false)).labelled_by(l.id);
+        let r = ui.add_enabled(!from_rc, egui::Slider::new(&mut pct, 0.0..=100.0).step_by(5.0).suffix("%").show_value(false)).labelled_by(l.id);
         ui.label(RichText::new(format!("{}%", pct.round())).size(12.0));
         if r.drag_stopped() || (r.changed() && !r.dragged()) {
             shell.run(pi, "task.set", json!({"task": id, "field": "percent", "value": (pct.round() as u8).to_string()}));
@@ -129,8 +138,10 @@ fn task_props(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, task: &Task
             });
         }
         let dl = task.deadline.map(|d| d.to_string()).unwrap_or_default();
-        field(shell, ui, pi, "Deadline (YYYY-MM-DD)", &k("deadline"), &dl, false, |v| {
-            ("task.set", json!({"task": id, "field": "deadline", "value": v}))
+        ui.add_enabled_ui(!from_rc, |ui| {
+            field(shell, ui, pi, "Deadline (YYYY-MM-DD)", &k("deadline"), &dl, false, |v| {
+                ("task.set", json!({"task": id, "field": "deadline", "value": v}))
+            });
         });
     }
 

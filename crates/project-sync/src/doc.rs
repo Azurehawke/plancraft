@@ -15,6 +15,7 @@ const DEPS: &str = "deps";
 const RESOURCES: &str = "resources";
 const ASSIGNMENTS: &str = "assignments";
 const BOARD: &str = "board";
+const DRAWINGS: &str = "drawings";
 const MAX_COLUMNS: usize = 12;
 
 /// Upper bounds for values read from files or typed by people (hostile input).
@@ -102,7 +103,14 @@ impl ProjectDoc {
             assignments: self.assignments(),
             calendar: self.calendar(),
             board_columns: self.board_columns(),
+            drawings: self.drawings(),
         }
+    }
+
+    fn drawings(&self) -> Vec<String> {
+        let mut v: Vec<String> = self.map(DRAWINGS).keys().map(|k| k.to_string()).collect();
+        v.sort();
+        v
     }
 
     fn board_columns(&self) -> Vec<String> {
@@ -503,6 +511,22 @@ impl ProjectDoc {
         Ok(())
     }
 
+    /// Links a drawing whose RevuCraft punch items feed this plan. `path` is the PDF's path
+    /// relative to the job folder, with `/` separators.
+    pub fn add_drawing(&self, path: &str) -> Result<()> {
+        check_drawing_path(path)?;
+        self.map(DRAWINGS).insert(path, true)?;
+        self.doc.commit();
+        Ok(())
+    }
+
+    /// Unlinks a drawing. Its tasks stay in the plan, cancelled, so history is kept.
+    pub fn remove_drawing(&self, path: &str) -> Result<()> {
+        self.map(DRAWINGS).delete(path)?;
+        self.doc.commit();
+        Ok(())
+    }
+
     // ---- dependencies ----------------------------------------------------------------------
 
     /// Links two tasks and returns the link's id. Loops and duplicate links are allowed here
@@ -778,3 +802,22 @@ pub fn parse_duration(s: &str) -> Option<i64> {
 
 #[cfg(test)]
 mod tests;
+
+/// A linked drawing is a PDF inside the job folder: a relative path with `/` separators, no `..`,
+/// no drive or absolute path, and a `.pdf` name.
+fn check_drawing_path(path: &str) -> Result<()> {
+    let bad = |reason: &str| Error::BadValue { field: "drawing".into(), reason: reason.into() };
+    if path.is_empty() || path.len() > 1024 {
+        return Err(bad("a drawing path must be 1 to 1024 bytes"));
+    }
+    if path.starts_with('/') || path.contains('\\') || path.contains(':') {
+        return Err(bad("a drawing must be inside the job folder (a relative path with / separators)"));
+    }
+    if path.split('/').any(|part| part.is_empty() || part == "..") {
+        return Err(bad("a drawing path can't contain empty parts or `..`"));
+    }
+    if !path.to_ascii_lowercase().ends_with(".pdf") {
+        return Err(bad("a linked drawing is a .pdf file"));
+    }
+    Ok(())
+}

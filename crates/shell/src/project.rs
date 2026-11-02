@@ -1,7 +1,9 @@
 //! An open project: its folder, the merged project, the schedule, and the view state.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use plancraft_project::{Date, Project, TaskId};
 use plancraft_project_sync::ProjectFolder;
@@ -9,6 +11,8 @@ use plancraft_schedule::Schedule;
 
 /// How often other devices' files are checked, in milliseconds.
 const POLL_MS: f64 = 2000.0;
+/// The largest `markups.json` read (a real punch list is a few KiB).
+const MAX_MARKUPS_BYTES: u64 = 4 * 1024 * 1024;
 
 pub struct OpenProject {
     folder: ProjectFolder,
@@ -33,6 +37,8 @@ pub struct OpenProject {
     /// The Board shows only the tasks under this summary task.
     pub board_under: Option<TaskId>,
     last_poll: f64,
+    /// Each linked drawing's `markups.json` as last read: (size, modified time).
+    markups_seen: HashMap<String, (u64, Option<SystemTime>)>,
 }
 
 impl OpenProject {
@@ -58,6 +64,7 @@ impl OpenProject {
             cal_summaries: false,
             board_under: None,
             last_poll: 0.0,
+            markups_seen: HashMap::new(),
         }
     }
 
@@ -72,6 +79,36 @@ impl OpenProject {
 
     pub fn folder(&self) -> &ProjectFolder {
         &self.folder
+    }
+
+    /// The job folder: the folder that holds the `.plan` folder, where linked drawings live.
+    pub fn job_root(&self) -> Option<PathBuf> {
+        self.folder.dir().parent().map(Path::to_path_buf)
+    }
+
+    /// The linked drawings whose `markups.json` changed since they were last read, with the
+    /// file's path. Reading them is the caller's job.
+    pub fn take_changed_markups(&mut self) -> Vec<(String, PathBuf)> {
+        let Some(root) = self.job_root() else { return Vec::new() };
+        let mut out = Vec::new();
+        for drawing in &self.project.drawings {
+            let path = markups_path(&root, drawing);
+            let Ok(meta) = std::fs::metadata(&path) else {
+                self.markups_seen.remove(drawing);
+                continue;
+            };
+            let seen = (meta.len(), meta.modified().ok());
+            if self.markups_seen.get(drawing) != Some(&seen) {
+                self.markups_seen.insert(drawing.clone(), seen);
+                out.push((drawing.clone(), path));
+            }
+        }
+        out
+    }
+
+    /// Forgets every punch list read so far, so the next check reads them all again.
+    pub fn forget_markups(&mut self) {
+        self.markups_seen.clear();
     }
 
     pub fn title(&self) -> String {
@@ -179,4 +216,22 @@ impl OpenProject {
         }
         false
     }
+}
+
+/// Where RevuCraft writes a drawing's punch list: `markups.json` in the drawing's job folder, which
+/// sits beside the PDF and has the PDF's name without `.pdf` (`Floor/Plan.pdf` → `Floor/Plan/`).
+pub fn markups_path(root: &Path, drawing: &str) -> PathBuf {
+    root.join(Path::new(drawing).with_extension("")).join("markups.json")
+}
+
+/// A drawing's punch list as text. `Ok(None)` when RevuCraft hasn't written it yet.
+pub fn read_markups(path: &Path) -> Result<Option<String>, String> {
+    let meta = match std::fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => return Ok(None),
+    };
+    if meta.len() > MAX_MARKUPS_BYTES {
+        return Err(format!("{} is larger than 4 MB, so it isn't a punch list", path.display()));
+    }
+    std::fs::read_to_string(path).map(Some).map_err(|e| format!("couldn't read {}: {e}", path.display()))
 }

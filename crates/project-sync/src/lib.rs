@@ -31,6 +31,7 @@
 mod device;
 mod doc;
 mod folder;
+pub mod revucraft;
 
 pub use device::{device_name, sanitize_device_name};
 pub use doc::{Placement, ProjectDoc, parse_duration};
@@ -53,6 +54,8 @@ pub enum Error {
     WouldCycle,
     #[error("project data: {0}")]
     Data(String),
+    #[error("RevuCraft markups file: {0}")]
+    Sidecar(String),
     #[error("{path}: {source}")]
     Io { path: String, source: std::io::Error },
     #[error("{0} is not a PlanCraft project (expected a .plan folder or a .plancraft file)")]

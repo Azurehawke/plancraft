@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Calendar and Board views built (2026-11-01, v0.5.0), on top of Phase 3's window (v0.4.0). Phases 0–2: v0.1.0–v0.3.0.
+> **Status:** Phase 3b (the RevuCraft link, PlanCraft side) built on `phase-3b-revucraft-link`: the link switch, linked drawings, punch items as tasks, read-only punch fields. Calendar and Board views (v0.5.0), Phase 3 (v0.4.0), Phases 0–2 (v0.1.0–v0.3.0).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
@@ -472,7 +472,7 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 1 ✅ | Loro prototype test, then `project-model` + `project-sync` + folder format + entry file; wasm build check in CI | Same project edited offline on laptop and tablet, synced by Syncthing, merges cleanly |
 | 2 ✅ | `schedule` crate (CPM, calendars, constraints) | Fixture suite passes |
 | 3 ✅ | Obsidian-style shell (sidebar panels, Inspector, tabs, per-tab ribbon), new project wizard + Project Information pane, task sheet + Gantt view + `task.*` commands | Usable for a real network-install job |
-| 3b | RevuCraft link (setting, punch items → tasks, plan → RevuCraft) | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
+| 3b ✅ | RevuCraft link: the switch, linked drawings, punch items → tasks (`markups.json`, format 1), status and progress from RevuCraft. Plan → RevuCraft (summary file) comes with the dashboard | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
 | 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |

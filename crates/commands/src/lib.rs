@@ -35,6 +35,13 @@ pub const CATALOG: &[CommandSpec] = &[
     },
     CommandSpec { id: "task.setStatus", label: "Move Card", params: "{task, status: column name} (Done sets 100%; leaving Done from 100% sets 0%)" },
     CommandSpec { id: "board.setColumns", label: "Board Columns", params: "{columns: [names…]} (2–12, left to right; the last means done)" },
+    CommandSpec { id: "revucraft.addDrawing", label: "Link Drawing", params: "{path: the PDF's path in the job folder, with / separators}" },
+    CommandSpec { id: "revucraft.removeDrawing", label: "Unlink Drawing", params: "{path}" },
+    CommandSpec {
+        id: "revucraft.sync",
+        label: "Sync RevuCraft",
+        params: "{drawing, json: the drawing's markups.json} → {added, updated, cancelled, restored}",
+    },
     CommandSpec { id: "task.move", label: "Move Task", params: "{task, under?|top?|after?|before?}" },
     CommandSpec { id: "task.moveUp", label: "Move Up", params: "{task}" },
     CommandSpec { id: "task.moveDown", label: "Move Down", params: "{task}" },
@@ -98,6 +105,13 @@ pub fn run(doc: &ProjectDoc, id: &str, params: &Value) -> Result<Value, String> 
                 .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
                 .unwrap_or_default();
             e(doc.set_board_columns(&cols))
+        }
+        "revucraft.addDrawing" => e(doc.add_drawing(p.str("path")?)),
+        "revucraft.removeDrawing" => e(doc.remove_drawing(p.str("path")?)),
+        "revucraft.sync" => {
+            let sidecar = plancraft_project_sync::revucraft::parse(p.str("json")?).map_err(|e| e.to_string())?;
+            let r = doc.apply_punch(p.str("drawing")?, &sidecar).map_err(|e| e.to_string())?;
+            Ok(json!({"added": r.added, "updated": r.updated, "cancelled": r.cancelled, "restored": r.restored}))
         }
         "task.move" => {
             let t = task(doc, &p, "task")?;
@@ -291,5 +305,20 @@ mod tests {
             let _ = run(&d, c.id, &json!({"task": "999", "from": 1, "date": "x", "days": "7"}));
         }
         assert!(run(&d, "nope", &json!({})).is_err());
+    }
+
+    #[test]
+    fn revucraft_commands_link_a_drawing_and_sync_its_punch_list() {
+        let d = ProjectDoc::new();
+        assert!(run(&d, "revucraft.addDrawing", &json!({"path": "../x.pdf"})).is_err());
+        assert!(run(&d, "revucraft.addDrawing", &json!({"path": "Plan.dwg"})).is_err());
+        run(&d, "revucraft.addDrawing", &json!({"path": "Floor/Plan.pdf"})).unwrap();
+        assert_eq!(d.project().drawings, ["Floor/Plan.pdf"]);
+        let json = r#"{"format":"revucraft-markups","version":1,"punch":[{"name":"n1","no":2,"assignee":"Tech","status":"Open"}]}"#;
+        let r = run(&d, "revucraft.sync", &json!({"drawing": "Floor/Plan.pdf", "json": json})).unwrap();
+        assert_eq!(r["added"], 1);
+        assert!(run(&d, "revucraft.sync", &json!({"drawing": "Floor/Plan.pdf", "json": "{}"})).is_err());
+        run(&d, "revucraft.removeDrawing", &json!({"path": "Floor/Plan.pdf"})).unwrap();
+        assert!(d.project().drawings.is_empty());
     }
 }

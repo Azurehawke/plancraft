@@ -143,6 +143,11 @@ fn shell_logic(shell: &mut plancraft_shell::Shell, sheet: &mut SheetApp, ctx: &e
                     shell.set_wizard_folder(p);
                 }
             }
+            plancraft_shell::Request::LinkDrawing => {
+                if let Some(p) = rfd::FileDialog::new().set_title("Link a RevuCraft drawing").add_filter("PDF drawing", &["pdf"]).pick_file() {
+                    shell.link_drawing(&p);
+                }
+            }
             plancraft_shell::Request::OpenSpreadsheet(path) => {
                 shell.show_spreadsheet_tab();
                 if let Some(p) = path.and_then(|p| p.to_str().map(str::to_string)) {
