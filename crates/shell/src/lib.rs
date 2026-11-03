@@ -188,6 +188,8 @@ pub struct Shell {
     pub layout: panes::Pane,
     /// The leaf (pane) the ribbon acts on, counting panes from the top-left.
     pub focus: usize,
+    /// Panes floating over the window (not kept between runs).
+    pub floating: Vec<panes::Float>,
     /// The Documents tab's editor state.
     pub documents: documents::DocState,
     /// The app's clock at the last frame, in milliseconds (the shell never reads the clock itself).
@@ -222,6 +224,7 @@ impl Shell {
             current: None,
             layout,
             focus: 0,
+            floating: Vec::new(),
             documents: documents::DocState::default(),
             clock_ms: 0.0,
             panel: prefs.panel.unwrap_or(Panel::Explorer),

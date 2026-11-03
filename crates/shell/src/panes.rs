@@ -1,9 +1,10 @@
 //! The window's central area as panes, as in Obsidian: a tree of splits whose leaves are tab
 //! groups. Each leaf has its own tabs and shows one of them; the focused leaf is where the
 //! ribbon's commands go. Splits go right (side by side) or down (stacked); the divider between
-//! two panes drags to resize them.
+//! two panes drags to resize them. A pane can also float over the window in its own frame, and
+//! dock back into the focused pane. Floating panes are not kept between runs.
 
-use egui::{Rect, Sense, Ui, UiBuilder, pos2};
+use egui::{Pos2, Rect, Sense, Ui, UiBuilder, Vec2, pos2, vec2};
 use gridcraft_ui_egui::theme::Tokens;
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +31,15 @@ pub struct Leaf {
 pub enum Pane {
     Leaf(Leaf),
     Split { dir: Dir, ratio: f32, a: Box<Pane>, b: Box<Pane> },
+}
+
+/// A pane floating over the window in its own frame.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Float {
+    pub id: u64,
+    pub leaf: Leaf,
+    pub pos: Pos2,
+    pub size: Vec2,
 }
 
 /// Width of the draggable divider between two panes, in points.
@@ -155,9 +165,29 @@ enum Op {
     Split(usize, Dir),
     CloseLeaf(usize),
     CloseTab(usize, usize),
+    Float(usize),
+    Dock(u64),
+    CloseFloat(u64),
 }
 
-/// Draws the central area: every pane, its tab strip and its content.
+/// Where a leaf is drawn: in the split layout, or in a floating frame.
+#[derive(Debug, Clone, Copy)]
+enum Slot {
+    Docked { index: usize, focused: bool, multi: bool },
+    Floating(u64),
+}
+
+/// The text on a tab.
+fn tab_title(tab: &Tab) -> String {
+    match tab {
+        Tab::Spreadsheet => "Spreadsheet".to_string(),
+        Tab::Documents => "Documents".to_string(),
+        Tab::View(v) => v.label().to_string(),
+    }
+}
+
+/// Draws the central area: every docked pane with its tab strip and content, then the floating
+/// panes on top of them.
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens, spreadsheet: &mut dyn FnMut(&mut Ui)) {
     let mut layout = std::mem::take(&mut shell.layout);
     let mut ops = Vec::new();
@@ -167,35 +197,70 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens, spreadsheet: &mut
     let multi = layout.leaf_count() > 1;
     show_node(shell, ui, t, &mut layout, area, &mut counter, &mut ops, spreadsheet, (id, multi));
     shell.layout = layout;
+
+    // Each floating pane is a window of its own.
+    let mut floats = std::mem::take(&mut shell.floating);
+    for f in floats.iter_mut() {
+        let mut open = true;
+        let win = egui::Window::new(tab_title(&f.leaf.tab()))
+            .id(ui.scope_id().with(("pc_float", f.id)))
+            .default_pos(f.pos)
+            .default_size(f.size)
+            .resizable(true)
+            .collapsible(false)
+            .open(&mut open);
+        let fid = f.id;
+        let _ = win.show(ui.ctx(), |ui| {
+            leaf_ui(&mut *shell, ui, t, &mut f.leaf, Slot::Floating(fid), &mut ops, &mut *spreadsheet);
+        });
+        if !open {
+            ops.push(Op::CloseFloat(fid));
+        }
+    }
+    shell.floating = floats;
+
     let mut changed = false;
     for op in ops {
         match op {
-            Op::Focus(i) => {
-                if shell.focus != i {
-                    shell.focus = i;
-                }
-            }
-            Op::Split(i, dir) => {
-                changed |= shell.layout.split(i, dir);
-            }
-            Op::CloseLeaf(i) => {
-                changed |= shell.layout.close(i);
-            }
+            Op::Focus(i) => shell.focus = i,
+            Op::Split(i, dir) => changed |= shell.layout.split(i, dir),
+            Op::CloseLeaf(i) => changed |= shell.layout.close(i),
             Op::CloseTab(i, k) => {
                 let Some(leaf) = shell.layout.leaf_mut(i) else { continue };
                 leaf.remove_tab(k);
-                let empty = leaf.tabs.is_empty();
-                if empty && shell.layout.leaf_count() > 1 {
-                    changed |= shell.layout.close(i);
-                } else if empty {
-                    if let Some(leaf) = shell.layout.leaf_mut(i) {
+                if leaf.tabs.is_empty() {
+                    if shell.layout.leaf_count() > 1 {
+                        shell.layout.close(i);
+                    } else if let Some(leaf) = shell.layout.leaf_mut(i) {
                         leaf.tabs.push(Tab::View(View::Gantt));
                     }
-                    changed = true;
-                } else {
-                    changed = true;
                 }
+                changed = true;
             }
+            Op::Float(i) => {
+                let Some(leaf) = shell.layout.leaf(i).cloned() else { continue };
+                if shell.layout.leaf_count() > 1 {
+                    shell.layout.close(i);
+                } else {
+                    shell.layout = Pane::default();
+                }
+                let id = shell.floating.iter().map(|f| f.id).max().unwrap_or(0) + 1;
+                let n = shell.floating.len() as f32;
+                shell.floating.push(Float { id, leaf, pos: pos2(260.0 + 28.0 * n, 170.0 + 28.0 * n), size: vec2(440.0, 320.0) });
+                changed = true;
+            }
+            Op::Dock(id) => {
+                let Some(at) = shell.floating.iter().position(|f| f.id == id) else { continue };
+                let float = shell.floating.remove(at);
+                let focus = shell.focus;
+                shell.layout.split(focus, Dir::Right);
+                if let Some(leaf) = shell.layout.leaf_mut(focus + 1) {
+                    *leaf = float.leaf;
+                }
+                shell.focus = focus + 1;
+                changed = true;
+            }
+            Op::CloseFloat(id) => shell.floating.retain(|f| f.id != id),
         }
     }
     let count = shell.layout.leaf_count();
@@ -224,9 +289,9 @@ fn show_node(
         Pane::Leaf(leaf) => {
             let index = *counter;
             *counter += 1;
-            let focused = shell.focus == index;
+            let slot = Slot::Docked { index, focused: shell.focus == index, multi };
             ui.scope_builder(UiBuilder::new().max_rect(area), |ui| {
-                leaf_ui(shell, ui, t, leaf, index, focused, multi, ops, spreadsheet);
+                leaf_ui(shell, ui, t, leaf, slot, ops, spreadsheet);
             });
         }
         Pane::Split { dir, ratio, a, b } => {
@@ -279,55 +344,71 @@ fn split_rects(area: Rect, dir: Dir, ratio: f32) -> (Rect, Rect, Rect) {
     }
 }
 
+/// Closes tab `k` of a leaf. A floating pane with no tabs left closes itself.
+fn close_tab(slot: Slot, leaf: &mut Leaf, k: usize, ops: &mut Vec<Op>) {
+    match slot {
+        Slot::Docked { index, .. } => ops.push(Op::CloseTab(index, k)),
+        Slot::Floating(id) => {
+            leaf.remove_tab(k);
+            if leaf.tabs.is_empty() {
+                ops.push(Op::CloseFloat(id));
+            }
+        }
+    }
+}
+
 /// One leaf: its tab strip on top, its shown tab below.
 #[allow(clippy::too_many_arguments)]
-fn leaf_ui(
-    shell: &mut Shell,
-    ui: &mut Ui,
-    t: &Tokens,
-    leaf: &mut Leaf,
-    index: usize,
-    focused: bool,
-    multi: bool,
-    ops: &mut Vec<Op>,
-    spreadsheet: &mut dyn FnMut(&mut Ui),
-) {
+fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Slot, ops: &mut Vec<Op>, spreadsheet: &mut dyn FnMut(&mut Ui)) {
     let pane_rect = ui.max_rect();
-    if ui.ctx().input(|i| i.pointer.primary_pressed() && i.pointer.interact_pos().is_some_and(|p| pane_rect.contains(p))) {
+    if let Slot::Docked { index, .. } = slot
+        && ui.ctx().input(|i| i.pointer.primary_pressed() && i.pointer.interact_pos().is_some_and(|p| pane_rect.contains(p)))
+    {
         ops.push(Op::Focus(index));
     }
     egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin { left: 4, right: 4, top: 3, bottom: 0 }).show(ui, |ui| {
         ui.horizontal(|ui| {
             let tabs = leaf.tabs.clone();
             for (k, tab) in tabs.iter().enumerate() {
-                let title = match tab {
-                    Tab::Spreadsheet => "Spreadsheet".to_string(),
-                    Tab::Documents => "Documents".to_string(),
-                    Tab::View(v) => v.label().to_string(),
-                };
-                let (resp, closed) = tab_button(ui, t, &title, k == leaf.active, true);
+                let (resp, closed) = tab_button(ui, t, &tab_title(tab), k == leaf.active, true);
                 if resp.clicked() {
                     leaf.active = k;
-                    ops.push(Op::Focus(index));
+                    if let Slot::Docked { index, .. } = slot {
+                        ops.push(Op::Focus(index));
+                    }
                 }
                 if closed {
-                    ops.push(Op::CloseTab(index, k));
+                    close_tab(slot, leaf, k, ops);
                 }
                 resp.context_menu(|ui| {
-                    if ui.button("Split right").clicked() {
-                        ops.push(Op::Split(index, Dir::Right));
-                        ui.close();
-                    }
-                    if ui.button("Split down").clicked() {
-                        ops.push(Op::Split(index, Dir::Down));
-                        ui.close();
-                    }
-                    if multi && ui.button("Close pane").clicked() {
-                        ops.push(Op::CloseLeaf(index));
-                        ui.close();
+                    match slot {
+                        Slot::Docked { index, multi, .. } => {
+                            if ui.button("Split right").clicked() {
+                                ops.push(Op::Split(index, Dir::Right));
+                                ui.close();
+                            }
+                            if ui.button("Split down").clicked() {
+                                ops.push(Op::Split(index, Dir::Down));
+                                ui.close();
+                            }
+                            if ui.button("Float pane").clicked() {
+                                ops.push(Op::Float(index));
+                                ui.close();
+                            }
+                            if multi && ui.button("Close pane").clicked() {
+                                ops.push(Op::CloseLeaf(index));
+                                ui.close();
+                            }
+                        }
+                        Slot::Floating(id) => {
+                            if ui.button("Dock pane").clicked() {
+                                ops.push(Op::Dock(id));
+                                ui.close();
+                            }
+                        }
                     }
                     if ui.button("Close tab").clicked() {
-                        ops.push(Op::CloseTab(index, k));
+                        close_tab(slot, leaf, k, ops);
                         ui.close();
                     }
                 });
@@ -354,8 +435,8 @@ fn leaf_ui(
         });
     });
     let rect = ui.max_rect();
-    let strip = Rect::from_min_max(rect.min, pos2(rect.max.x, rect.min.y + 2.0));
-    if focused {
+    if matches!(slot, Slot::Docked { focused: true, .. }) {
+        let strip = Rect::from_min_max(rect.min, pos2(rect.max.x, rect.min.y + 2.0));
         ui.painter().rect_filled(strip, 0.0, t.accent);
     }
     match leaf.tab() {
