@@ -325,6 +325,8 @@ impl Shell {
     pub fn run(&mut self, i: usize, id: &str, params: serde_json::Value) -> Option<serde_json::Value> {
         let today = self.today;
         let p = self.projects.get_mut(i)?;
+        log::info!("diag: command {id} start {params}");
+        let _slow = SlowStep::new(format!("command {id}"));
         match p.run(id, &params, today) {
             Ok(v) => Some(v),
             Err(e) => {
@@ -420,6 +422,7 @@ impl Shell {
 
     /// Draws the shell. `spreadsheet` draws the spreadsheet tab's contents into the given Ui.
     pub fn show(&mut self, ui: &mut Ui, spreadsheet: &mut dyn FnMut(&mut Ui)) {
+        let _slow = SlowStep::new("window frame".to_string());
         let t = Tokens::get(ui.ctx());
         if self.active >= self.tabs.len() {
             self.active = self.tabs.len().saturating_sub(1);
@@ -620,3 +623,28 @@ pub(crate) const ROW_H: f32 = 24.0;
 
 #[cfg(test)]
 mod tests;
+
+/// Logs a warning when a step of the window takes longer than [`SLOW_STEP_MS`] (diagnosing
+/// hangs). Commands and drag ends also log an info line when they start, so a log of a hang
+/// shows the step that never finished.
+struct SlowStep {
+    what: String,
+    started: std::time::Instant,
+}
+
+const SLOW_STEP_MS: u128 = 300;
+
+impl SlowStep {
+    fn new(what: String) -> Self {
+        Self { what, started: std::time::Instant::now() }
+    }
+}
+
+impl Drop for SlowStep {
+    fn drop(&mut self) {
+        let ms = self.started.elapsed().as_millis();
+        if ms >= SLOW_STEP_MS {
+            log::warn!("diag: slow {} took {ms} ms", self.what);
+        }
+    }
+}

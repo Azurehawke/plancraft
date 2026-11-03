@@ -393,6 +393,7 @@ fn bar_drag(ui: &mut Ui, p: &crate::OpenProject, task: &Task, bar: Rect, c: &Ctx
         }
         if r.drag_stopped() {
             let moved = (total(acc) / p.day_px).round() as i64;
+            log::info!("diag: drag end on {} ({kind}), moved {moved} days, day_px {}", task.name, p.day_px);
             if moved != 0 {
                 let Some(d) = p.schedule.get(&task.id) else { continue };
                 if kind == "move" {
