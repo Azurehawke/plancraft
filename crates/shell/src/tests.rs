@@ -184,10 +184,10 @@ fn renders_calendar_and_board() {
     shell.run(0, "task.setStatus", json!({"task": "2.3", "status": "Review"})).unwrap();
     shell.run(0, "task.setStatus", json!({"task": "3.1", "status": "Backlog"})).unwrap();
     shell.run(0, "resource.set", json!({"resource": "Tech 1", "field": "color", "value": "#f2a93b"})).unwrap();
-    shell.tab = Tab::View(View::Calendar);
+    shell.set_focused_tab(Tab::View(View::Calendar));
     shell.projects[0].cal_month = Some((2026, 11));
     render(&mut shell, "calendar", egui::vec2(1500.0, 820.0), false);
-    shell.tab = Tab::View(View::Kanban);
+    shell.set_focused_tab(Tab::View(View::Kanban));
     let pick = shell.projects[0].project.find_task("2.2").unwrap().id.clone();
     shell.projects[0].select_only(pick);
     render(&mut shell, "board", egui::vec2(1600.0, 820.0), false);
@@ -267,13 +267,126 @@ fn one_project_is_shown_at_a_time_and_switching_keeps_the_view() {
     shell.open_project(&dir.path().join("Other Job.plan"));
     assert_eq!(shell.active_project(), Some(1), "a newly opened project is the one shown");
     shell.focus_project(0);
-    shell.tab = Tab::View(View::Kanban);
+    shell.set_focused_tab(Tab::View(View::Kanban));
     shell.focus_project(1);
     assert_eq!(shell.active_project(), Some(1));
-    assert_eq!(shell.tab, Tab::View(View::Kanban), "switching project keeps the view");
+    assert_eq!(shell.focused_tab(), Tab::View(View::Kanban), "switching project keeps the view");
     shell.show_spreadsheet_tab();
-    assert!(shell.sheet_open);
-    assert_eq!(shell.tab, Tab::Spreadsheet);
+    assert_eq!(shell.focused_tab(), Tab::Spreadsheet);
     shell.focus_project(99);
     assert_eq!(shell.active_project(), Some(1), "an unknown project index is ignored");
+}
+
+#[test]
+fn panes_split_close_and_keep_their_own_tabs() {
+    use crate::panes::{Dir, Pane};
+    let mut layout = Pane::default();
+    assert_eq!(layout.leaf_count(), 1);
+    assert!(layout.split(0, Dir::Right));
+    assert_eq!(layout.leaf_count(), 2);
+    layout.leaf_mut(1).unwrap().set_tab(Tab::View(View::Calendar));
+    assert_eq!(layout.leaf(0).unwrap().tab(), Tab::View(View::Gantt), "the first pane keeps its tab");
+    assert_eq!(layout.leaf(1).unwrap().tab(), Tab::View(View::Calendar));
+    assert!(layout.split(1, Dir::Down));
+    assert_eq!(layout.leaf_count(), 3);
+    assert!(layout.close(1));
+    assert_eq!(layout.leaf_count(), 2);
+    assert!(layout.close(0));
+    assert_eq!(layout.leaf_count(), 1);
+    assert!(!layout.close(0), "the last pane is never closed");
+}
+
+#[test]
+fn the_pane_layout_is_kept_between_runs() {
+    use crate::panes::Dir;
+    let dir = tempfile::tempdir().unwrap();
+    let settings = dir.path().join("settings");
+    let mut shell = Shell::new("laptop", Some(settings.clone()), d("2026-11-04"));
+    shell.layout.split(0, Dir::Right);
+    shell.save_prefs();
+    let again = Shell::new("laptop", Some(settings), d("2026-11-04"));
+    assert_eq!(again.layout.leaf_count(), 2);
+}
+
+#[test]
+fn renders_two_panes_side_by_side() {
+    use crate::panes::Dir;
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.layout.split(0, Dir::Right);
+    shell.layout.leaf_mut(1).unwrap().set_tab(Tab::View(View::Kanban));
+    render(&mut shell, "two-panes", egui::vec2(1500.0, 760.0), false);
+}
+
+#[test]
+fn renders_a_floating_pane_over_the_layout() {
+    use crate::panes::{Float, Leaf};
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.floating.push(Float {
+        id: 1,
+        leaf: Leaf { tabs: vec![Tab::View(View::Kanban)], active: 0 },
+        pos: egui::pos2(300.0, 120.0),
+        size: egui::vec2(440.0, 320.0),
+    });
+    render(&mut shell, "float", egui::vec2(1500.0, 760.0), false);
+    assert_eq!(shell.floating.len(), 1, "the float stays until it is docked or closed");
+    assert_eq!(shell.layout.leaf_count(), 1, "floating does not change the docked layout");
+}
+
+#[test]
+fn documents_are_plain_markdown_files_in_the_documents_folder() {
+    use crate::documents;
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+    assert_eq!(documents::list(project), Vec::<String>::new(), "no documents folder yet");
+    let charter = documents::create(project, "Charter").unwrap();
+    assert_eq!(charter, "Charter.md");
+    assert!(documents::create(project, "Charter.md").is_err(), "never overwrites a document");
+    documents::create(project, "agenda").unwrap();
+    assert_eq!(documents::list(project), vec!["agenda.md", "Charter.md"], "sorted without regard to case");
+    assert!(documents::read(project, "Charter.md").unwrap().starts_with("# Charter"));
+    documents::write(project, "Charter.md", "# Charter\n\nScope: the network install.\n").unwrap();
+    assert!(documents::read(project, "Charter.md").unwrap().contains("Scope"));
+    let renamed = documents::rename(project, "agenda.md", "Weekly agenda").unwrap();
+    assert_eq!(renamed, "Weekly agenda.md");
+    assert!(documents::rename(project, "Weekly agenda.md", "Charter").is_err(), "never overwrites on rename");
+    documents::delete(project, "Weekly agenda.md").unwrap();
+    assert_eq!(documents::list(project), vec!["Charter.md"]);
+    // Names can't leave the documents folder or break the file system.
+    for bad in ["", "   ", "../escape", "a/b", "a\\b", ".hidden", "bad:name", "x".repeat(101).as_str()] {
+        assert!(documents::file_name(bad).is_err(), "{bad:?} should be refused");
+    }
+    assert!(documents::read(project, "../Charter.md").is_err());
+    assert!(documents::write(project, "../evil.md", "x").is_err());
+    assert!(!project.join("evil.md").exists());
+}
+
+#[test]
+fn renders_the_documents_tab() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let project = shell.projects[0].dir().to_path_buf();
+    crate::documents::create(&project, "Charter").unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    shell.run(0, "project.setInfo", json!({"field": "title", "value": "Acme Network"}));
+    render(&mut shell, "documents", egui::vec2(1500.0, 760.0), false);
+}
+
+#[test]
+fn renders_the_markdown_preview_and_editor_toolbar() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let project = shell.projects[0].dir().to_path_buf();
+    crate::documents::write(
+        &project,
+        &crate::documents::create(&project, "Charter").unwrap(),
+        "# Charter\n\nThe **network install** covers *two* floors with `Cat6` drops.\n\n- Survey the rooms\n- Map the drops\n\n> Ask the owner first.\n\n```\nswitch port 12\n```\n",
+    )
+    .unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    shell.open_document("Charter.md");
+    render(&mut shell, "markdown-editor", egui::vec2(1500.0, 760.0), false);
+    shell.documents.preview = true;
+    render(&mut shell, "markdown-preview", egui::vec2(1500.0, 760.0), false);
 }

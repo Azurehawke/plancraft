@@ -197,6 +197,14 @@ fn draw_rows(ui: &mut Ui, c: &Ctx, p: &mut crate::OpenProject, rows: &[usize], a
                 continue;
             }
             let resp = ui.interact(cell, ui.scope_id().with(("pc_cell", &task.id.0, key)), Sense::click());
+            // Hover a task's name to peek at its notes, drawn as the Markdown preview.
+            if key == "name" && !task.notes.trim().is_empty() {
+                let notes = task.notes.clone();
+                let _ = resp.clone().on_hover_ui(|ui| {
+                    ui.set_max_width(340.0);
+                    egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| crate::markdown::show(ui, t, &notes));
+                });
+            }
             if resp.clicked() {
                 if ui.input(|i| i.modifiers.command) {
                     if let Some(pos) = p.selected.iter().position(|s| *s == task.id) {
