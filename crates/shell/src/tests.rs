@@ -356,3 +356,21 @@ fn renders_the_documents_tab() {
     shell.run(0, "project.setInfo", json!({"field": "title", "value": "Acme Network"}));
     render(&mut shell, "documents", egui::vec2(1500.0, 760.0), false);
 }
+
+#[test]
+fn renders_the_markdown_preview_and_editor_toolbar() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let project = shell.projects[0].dir().to_path_buf();
+    crate::documents::write(
+        &project,
+        &crate::documents::create(&project, "Charter").map(|n| n).unwrap(),
+        "# Charter\n\nThe **network install** covers *two* floors with `Cat6` drops.\n\n- Survey the rooms\n- Map the drops\n\n> Ask the owner first.\n\n```\nswitch port 12\n```\n",
+    )
+    .unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    shell.open_document("Charter.md");
+    render(&mut shell, "markdown-editor", egui::vec2(1500.0, 760.0), false);
+    shell.documents.preview = true;
+    render(&mut shell, "markdown-preview", egui::vec2(1500.0, 760.0), false);
+}
