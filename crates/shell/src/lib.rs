@@ -296,11 +296,7 @@ impl Shell {
         self.current = None;
         self.documents = documents::DocState::default();
         let keep_sheet = (0..self.layout.leaf_count()).any(|i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
-        self.layout = if keep_sheet {
-            panes::Pane::Leaf(panes::Leaf { tabs: vec![Tab::Spreadsheet], active: 0 })
-        } else {
-            panes::Pane::default()
-        };
+        self.layout = if keep_sheet { panes::Pane::Leaf(panes::Leaf { tabs: vec![Tab::Spreadsheet], active: 0 }) } else { panes::Pane::default() };
         self.focus = 0;
         self.floating.clear();
         self.save_prefs();
