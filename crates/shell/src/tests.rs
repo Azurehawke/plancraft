@@ -255,4 +255,6 @@ fn renders_a_punch_task_from_revucraft() {
     let pick = shell.projects[0].project.tasks.iter().find(|t| t.source.ends_with("#nm=n1")).unwrap().id.clone();
     shell.projects[0].select_only(pick);
     render(&mut shell, "revucraft-punch", egui::vec2(1500.0, 820.0), false);
+    shell.panel = crate::Panel::Settings;
+    render(&mut shell, "revucraft-settings", egui::vec2(1500.0, 820.0), false);
 }

@@ -81,6 +81,9 @@ fn task_props(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, task: &Task
     }
     ui.add_enabled_ui(!from_rc, |ui| {
         field(shell, ui, pi, "Name", &k("name"), &task.name, false, |v| ("task.set", json!({"task": id, "field": "name", "value": v})));
+        field(shell, ui, pi, "Location (room or zone)", &k("location"), &task.location, false, |v| {
+            ("task.set", json!({"task": id, "field": "location", "value": v}))
+        });
     });
 
     let dates = shell.projects.get(pi).and_then(|p| p.schedule.get(&task.id).cloned());

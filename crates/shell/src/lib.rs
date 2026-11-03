@@ -61,10 +61,12 @@ pub enum Panel {
     Filters,
     Recent,
     Sync,
+    Settings,
 }
 
 impl Panel {
-    pub const ALL: [Panel; 7] = [Panel::Explorer, Panel::Search, Panel::Bookmarks, Panel::Outline, Panel::Filters, Panel::Recent, Panel::Sync];
+    pub const ALL: [Panel; 8] =
+        [Panel::Explorer, Panel::Search, Panel::Bookmarks, Panel::Outline, Panel::Filters, Panel::Recent, Panel::Sync, Panel::Settings];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -75,6 +77,7 @@ impl Panel {
             Panel::Filters => "Filters",
             Panel::Recent => "Recent",
             Panel::Sync => "Sync",
+            Panel::Settings => "Settings",
         }
     }
 }

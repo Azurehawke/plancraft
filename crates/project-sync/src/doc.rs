@@ -476,7 +476,7 @@ impl ProjectDoc {
         let node = self.node(id)?;
         let m = self.tree().get_meta(node)?;
         match field {
-            "name" | "notes" | "source" | "status" => put_text(&m, field, value)?,
+            "name" | "notes" | "source" | "status" | "location" => put_text(&m, field, value)?,
             "start" | "finish" | "deadline" | "constraint_date" => put_date(&m, field, value)?,
             "milestone" | "cancelled" => match parse_bool(value) {
                 Some(b) => m.insert(field, b)?,
@@ -668,6 +668,7 @@ fn read_task(id: TaskId, parent: Option<TaskId>, level: u32, wbs: String, summar
         notes: text(m, "notes"),
         cancelled: truthy(m, "cancelled"),
         source: text(m, "source"),
+        location: text(m, "location"),
         status: text(m, "status"),
     }
 }

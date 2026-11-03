@@ -184,6 +184,11 @@ impl ProjectDoc {
                 self.set_task(&id, "deadline", &want_deadline)?;
                 changed = true;
             }
+            let location = row.space.clone().unwrap_or_default();
+            if current.location != location {
+                self.set_task(&id, "location", &location)?;
+                changed = true;
+            }
             let column = column_of(&row.status, row.closed);
             if current.status != column {
                 self.set_task(&id, "status", column)?;
@@ -282,6 +287,7 @@ mod tests {
         assert_eq!(t.name, "Punch #3");
         assert_eq!(t.deadline.map(|d| d.to_string()).as_deref(), Some("2026-11-20"));
         assert_eq!(t.status, "To Do");
+        assert_eq!(t.location, "", "no space in this punch item");
         let r = p.resources.iter().find(|r| r.name == "Electrician").unwrap();
         assert!(p.assignments.iter().any(|a| a.task == t.id && a.resource == r.id));
     }
@@ -375,5 +381,24 @@ mod tests {
         let d = doc();
         d.apply_punch("F.pdf", &sidecar(&item("n1", 1, "", "soon", "Open"))).unwrap();
         assert!(task_for(&d.project(), "revucraft:F.pdf#nm=n1").deadline.is_none());
+    }
+}
+
+#[cfg(test)]
+mod space_tests {
+    use super::*;
+
+    #[test]
+    fn a_punch_items_space_is_the_task_location_and_follows_it() {
+        let d = ProjectDoc::new();
+        let with = |space: &str| {
+            parse(&format!(r#"{{"format":"revucraft-markups","version":1,"punch":[{{"name":"n1","no":1,"status":"Open","space":"{space}"}}]}}"#))
+                .unwrap()
+        };
+        d.apply_punch("F.pdf", &with("Server room")).unwrap();
+        let loc = |d: &ProjectDoc| d.project().tasks.iter().find(|t| t.source.ends_with("#nm=n1")).unwrap().location.clone();
+        assert_eq!(loc(&d), "Server room");
+        d.apply_punch("F.pdf", &with("Lobby")).unwrap();
+        assert_eq!(loc(&d), "Lobby");
     }
 }

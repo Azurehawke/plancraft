@@ -19,7 +19,7 @@ spreadsheet by the ArtCraft team, and keeps GridCraft's engine, command system, 
 
 **Phase 3 (the PlanCraft window).** PlanCraft opens in its own Obsidian-style window: sidebar panels, tabs, a Gantt chart with the critical path, a Calendar, a Kanban Board, an Inspector, and an optional new project wizard; spreadsheets open in a tab. Projects live in `.plan` folders that several devices edit and merge (Phase 1); dates, slack and the critical path come from the scheduler (Phase 2). `plancraft-cli project` still works for scripting.
 
-**RevuCraft link (Phase 3b).** Turn on *Linked to RevuCraft* in the RevuCraft ribbon group, then *Link drawing* to pick a PDF in the job folder (beside the `.plan` folder). Its punch items become tasks: named by number, assigned to the person RevuCraft names, due on its due date, and done when RevuCraft closes them. Their name, due date, assignee and status are read-only here. A punch item deleted in RevuCraft cancels its task. The link is per device and off by default. The file it reads is `markups.json`, which RevuCraft writes beside each drawing.
+**RevuCraft link (Phase 3b).** Turn on *Link to RevuCraft* in the Settings panel, then *Link drawing* in the RevuCraft ribbon group to pick a PDF in the job folder (beside the `.plan` folder). Settings also lists each project's linked drawings, with Unlink. Its punch items become tasks: named by number, assigned to the person RevuCraft names, due on its due date, and done when RevuCraft closes them. Their name, location, due date, assignee and status are read-only here. A punch item deleted in RevuCraft cancels its task. The link is per device and off by default. The file it reads is `markups.json`, which RevuCraft writes beside each drawing.
 
 ## Download
 

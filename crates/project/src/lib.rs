@@ -130,6 +130,8 @@ pub struct Task {
     /// The board column the task's card is in (empty: worked out from % complete, see
     /// [`Project::status_of`]).
     pub status: String,
+    /// Where the work happens (a room or zone), e.g. a RevuCraft space.
+    pub location: String,
 }
 
 /// When a task may be scheduled.
