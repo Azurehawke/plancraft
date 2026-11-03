@@ -155,7 +155,7 @@ fn schedule_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
 
 fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
     group(ui, t, "View", |ui| {
-        let current = match shell.tab {
+        let current = match shell.focused_tab() {
             Tab::View(v) => v,
             Tab::Spreadsheet => View::Gantt,
         };
@@ -168,7 +168,7 @@ fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
                 }
             });
             if chosen != current {
-                shell.tab = Tab::View(chosen);
+                shell.set_focused_tab(Tab::View(chosen));
             }
             ui.horizontal(|ui| {
                 let Some(p) = shell.projects.get_mut(pi) else { return };
