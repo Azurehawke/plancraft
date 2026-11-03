@@ -21,6 +21,10 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                     };
                     file_group(shell, ui, t);
                     sep(ui, t);
+                    if shell.focused_tab() == Tab::Documents {
+                        document_group(shell, ui, t, pi);
+                        return;
+                    }
                     task_group(shell, ui, t, pi);
                     sep(ui, t);
                     schedule_group(shell, ui, t, pi);
@@ -73,6 +77,32 @@ fn file_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                 shell.request(Request::OpenSpreadsheet(None));
             }
         });
+    });
+}
+
+/// The ribbon while a Documents tab is focused: the document commands, in place of the task
+/// and schedule commands. The document list on the left does the typing.
+fn document_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
+    let selected = shell.documents.selected.clone();
+    group(ui, t, "Document", |ui| {
+        if big_button(ui, Icon::NewFile, "New\nDocument", "Make a new Markdown document in the project", false).clicked() {
+            crate::documents::new_untitled(shell, pi);
+        }
+        ui.add_enabled_ui(selected.is_some(), |ui| {
+            if big_button(ui, Icon::Note, "Rename", "Rename the open document", false).clicked()
+                && let Some(name) = &selected
+            {
+                shell.documents.rename_to = Some(name.strip_suffix(".md").unwrap_or(name).to_string());
+            }
+            if big_button(ui, Icon::Delete, "Delete", "Delete the open document (asks first)", false).clicked() {
+                shell.documents.confirm_delete = true;
+            }
+        });
+        let preview = shell.documents.preview;
+        let (label, tip) = if preview { ("Edit", "Back to the text") } else { ("Preview", "Show the document as it will read") };
+        if big_button(ui, Icon::Table, label, tip, false).clicked() {
+            shell.documents.preview = !preview;
+        }
     });
 }
 
