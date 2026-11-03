@@ -157,7 +157,7 @@ fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
     group(ui, t, "View", |ui| {
         let current = match shell.focused_tab() {
             Tab::View(v) => v,
-            Tab::Spreadsheet => View::Gantt,
+            Tab::Spreadsheet | Tab::Documents => View::Gantt,
         };
         ui.vertical(|ui| {
             let mut chosen = current;

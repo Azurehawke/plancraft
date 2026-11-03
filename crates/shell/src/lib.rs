@@ -22,6 +22,7 @@
 
 mod board;
 mod calendar;
+mod documents;
 mod gantt;
 mod inspector;
 pub mod panes;
@@ -150,6 +151,8 @@ impl Filter {
 pub enum Tab {
     View(View),
     Spreadsheet,
+    /// The Markdown documents of the current project: file list and editor.
+    Documents,
 }
 
 /// A pinned task (the Bookmarks panel).
@@ -184,6 +187,8 @@ pub struct Shell {
     pub layout: panes::Pane,
     /// The leaf (pane) the ribbon acts on, counting panes from the top-left.
     pub focus: usize,
+    /// The Documents tab's editor state.
+    pub documents: documents::DocState,
     pub panel: Panel,
     pub left_open: bool,
     pub right_open: bool,
@@ -214,6 +219,7 @@ impl Shell {
             current: None,
             layout,
             focus: 0,
+            documents: documents::DocState::default(),
             panel: prefs.panel.unwrap_or(Panel::Explorer),
             left_open: prefs.left_open,
             right_open: prefs.right_open,
