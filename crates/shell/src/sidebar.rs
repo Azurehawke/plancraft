@@ -17,6 +17,7 @@ fn icon(p: Panel) -> Icon {
         Panel::Filters => Icon::Filter,
         Panel::Recent => Icon::Clock,
         Panel::Sync => Icon::Share,
+        Panel::Settings => Icon::Settings,
     }
 }
 
@@ -72,6 +73,7 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                 Panel::Filters => filters(shell, ui, t),
                 Panel::Recent => recent(shell, ui, t),
                 Panel::Sync => sync(shell, ui, t),
+                Panel::Settings => settings(shell, ui, t),
             });
         });
 }
@@ -258,6 +260,38 @@ fn recent(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
     }
     if let Some(r) = open {
         shell.open_project(&r);
+    }
+}
+
+/// Settings for this device: the RevuCraft link, and each project's linked drawings.
+fn settings(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    section(ui, t, "RevuCraft");
+    let mut on = shell.revucraft_link();
+    if ui.checkbox(&mut on, "Link to RevuCraft").changed() {
+        shell.set_revucraft_link(on);
+    }
+    ui.label(
+        RichText::new("Each device has its own setting. When it's on, PlanCraft reads the punch list (markups.json) of each linked drawing, and punch items become tasks.")
+            .color(t.text_dim)
+            .size(12.0),
+    );
+    let mut unlink: Option<(usize, String)> = None;
+    for (i, p) in shell.projects.iter().enumerate() {
+        section(ui, t, &format!("Linked drawings: {}", p.title()));
+        if p.project.drawings.is_empty() {
+            ui.label(RichText::new("None. Use Link drawing on the RevuCraft ribbon group.").color(t.text_dim).size(12.0));
+        }
+        for d in &p.project.drawings {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(d).size(12.5).color(t.text));
+                if ui.small_button("Unlink").on_hover_text("Stop reading this drawing's punch list (its tasks stay, cancelled)").clicked() {
+                    unlink = Some((i, d.clone()));
+                }
+            });
+        }
+    }
+    if let Some((i, path)) = unlink {
+        shell.run(i, "revucraft.removeDrawing", serde_json::json!({ "path": path }));
     }
 }
 

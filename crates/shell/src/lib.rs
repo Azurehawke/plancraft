@@ -47,6 +47,8 @@ pub enum Request {
     PickWizardFolder,
     /// Show the spreadsheet tab (and open this file there, when given).
     OpenSpreadsheet(Option<PathBuf>),
+    /// Pick a drawing (PDF) inside the job folder, then call [`Shell::link_drawing`].
+    LinkDrawing,
 }
 
 /// The left sidebar's panels, in icon-rail order.
@@ -59,10 +61,12 @@ pub enum Panel {
     Filters,
     Recent,
     Sync,
+    Settings,
 }
 
 impl Panel {
-    pub const ALL: [Panel; 7] = [Panel::Explorer, Panel::Search, Panel::Bookmarks, Panel::Outline, Panel::Filters, Panel::Recent, Panel::Sync];
+    pub const ALL: [Panel; 8] =
+        [Panel::Explorer, Panel::Search, Panel::Bookmarks, Panel::Outline, Panel::Filters, Panel::Recent, Panel::Sync, Panel::Settings];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -73,6 +77,7 @@ impl Panel {
             Panel::Filters => "Filters",
             Panel::Recent => "Recent",
             Panel::Sync => "Sync",
+            Panel::Settings => "Settings",
         }
     }
 }
@@ -165,6 +170,8 @@ pub struct ShellPrefs {
     pub left_open: bool,
     pub right_open: bool,
     pub panel: Option<Panel>,
+    /// Link this device's projects to RevuCraft's punch lists (off by default).
+    pub revucraft_link: bool,
 }
 
 /// The whole shell.
@@ -327,11 +334,87 @@ impl Shell {
         }
     }
 
-    /// Reloads projects whose files another device changed (cheap: compares file sizes and times).
+    /// Reloads projects whose files another device changed (cheap: compares file sizes and times),
+    /// and, with the RevuCraft link on, brings in any punch list that changed.
     pub fn poll(&mut self, now_ms: f64) {
         let today = self.today;
         for p in &mut self.projects {
             p.poll(now_ms, today);
+        }
+        if self.prefs.revucraft_link {
+            for i in 0..self.projects.len() {
+                self.sync_revucraft(i);
+            }
+        }
+    }
+
+    /// Whether this device links projects to RevuCraft.
+    pub fn revucraft_link(&self) -> bool {
+        self.prefs.revucraft_link
+    }
+
+    /// Turns the RevuCraft link on or off on this device. Turning it on reads every linked
+    /// drawing's punch list again.
+    pub fn set_revucraft_link(&mut self, on: bool) {
+        self.prefs.revucraft_link = on;
+        self.save_prefs();
+        for p in &mut self.projects {
+            p.forget_markups();
+        }
+        if on {
+            for i in 0..self.projects.len() {
+                self.sync_revucraft(i);
+            }
+        }
+    }
+
+    /// Links a drawing (a PDF inside the active project's job folder) and brings in its punch list.
+    pub fn link_drawing(&mut self, file: &Path) -> bool {
+        let Some(i) = self.active_project() else { return false };
+        let Some(root) = self.projects.get(i).and_then(|p| p.job_root()) else { return false };
+        let Ok(rel) = file.strip_prefix(&root) else {
+            self.message = Some("Pick a drawing inside the job folder, beside the .plan folder.".into());
+            return false;
+        };
+        let rel: Vec<String> = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
+        let path = rel.join("/");
+        if self.run(i, "revucraft.addDrawing", serde_json::json!({ "path": path })).is_none() {
+            return false;
+        }
+        self.sync_revucraft(i);
+        true
+    }
+
+    /// Brings project `i`'s changed punch lists into its plan. Does nothing with the link off.
+    fn sync_revucraft(&mut self, i: usize) {
+        if !self.prefs.revucraft_link {
+            return;
+        }
+        let changed = match self.projects.get_mut(i) {
+            Some(p) => p.take_changed_markups(),
+            None => return,
+        };
+        for (drawing, path) in changed {
+            let json = match project::read_markups(&path) {
+                Ok(Some(json)) => json,
+                Ok(None) => continue,
+                Err(e) => {
+                    self.message = Some(format!("RevuCraft: {e}"));
+                    continue;
+                }
+            };
+            if let Some(r) = self.run(i, "revucraft.sync", serde_json::json!({ "drawing": drawing, "json": json })) {
+                let n = |k: &str| r.get(k).and_then(|v| v.as_u64()).unwrap_or(0);
+                if n("added") + n("updated") + n("cancelled") + n("restored") > 0 {
+                    self.message = Some(format!(
+                        "RevuCraft punch list: {} added, {} updated, {} cancelled, {} restored",
+                        n("added"),
+                        n("updated"),
+                        n("cancelled"),
+                        n("restored")
+                    ));
+                }
+            }
         }
     }
 

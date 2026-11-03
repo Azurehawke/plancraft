@@ -26,6 +26,8 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                     schedule_group(shell, ui, t, pi);
                     sep(ui, t);
                     view_group(shell, ui, t, pi);
+                    sep(ui, t);
+                    revucraft_group(shell, ui, t);
                 });
             });
         },
@@ -190,6 +192,20 @@ fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
                 }
             });
         });
+    });
+}
+
+fn revucraft_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    let on = shell.revucraft_link();
+    group(ui, t, "RevuCraft", |ui| {
+        ui.add_enabled_ui(on, |ui| {
+            if big_button(ui, Icon::OpenFolder, "Link\ndrawing", "Link a drawing in the job folder: its punch items become tasks", false).clicked() {
+                shell.request(Request::LinkDrawing);
+            }
+        });
+        if !on {
+            ui.label(RichText::new("Turn it on in Settings").size(11.0).color(t.text_dim));
+        }
     });
 }
 

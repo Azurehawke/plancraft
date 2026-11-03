@@ -115,7 +115,10 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, pi: usize) {
                 if let Some(c) = dropped {
                     let Card(id) = &*c;
                     let now = project.task(id).map(|x| project.status_of(x));
-                    if now.as_deref() != Some(col.as_str()) {
+                    if project.task(id).is_some_and(|x| x.source.starts_with("revucraft:")) {
+                        // A punch item's status comes from RevuCraft, and the next sync would undo a move here.
+                        shell.message = Some("Punch items move in RevuCraft: their status comes from there.".into());
+                    } else if now.as_deref() != Some(col.as_str()) {
                         actions.push(("task.setStatus", json!({ "task": id.0, "status": col })));
                     }
                 }

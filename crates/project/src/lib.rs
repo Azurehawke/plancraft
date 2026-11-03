@@ -35,6 +35,9 @@ pub struct Project {
     /// The board's columns, left to right.
     #[serde(default = "default_columns")]
     pub board_columns: Vec<String>,
+    /// Drawings (PDFs, paths relative to the job folder) whose RevuCraft punch items feed this plan.
+    #[serde(default)]
+    pub drawings: Vec<String>,
 }
 
 /// The project-level information the new project wizard asks for.
@@ -127,6 +130,8 @@ pub struct Task {
     /// The board column the task's card is in (empty: worked out from % complete, see
     /// [`Project::status_of`]).
     pub status: String,
+    /// Where the work happens (a room or zone), e.g. a RevuCraft space.
+    pub location: String,
 }
 
 /// When a task may be scheduled.
