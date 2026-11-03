@@ -24,6 +24,7 @@ mod board;
 mod calendar;
 mod gantt;
 mod inspector;
+pub mod panes;
 mod project;
 mod ribbon;
 mod sidebar;
@@ -144,8 +145,8 @@ impl Filter {
     }
 }
 
-/// What the window shows: a view of the current project, or the spreadsheet UI (drawn by the host).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// What a pane shows: a view of the current project, or the spreadsheet UI (drawn by the host).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Tab {
     View(View),
     Spreadsheet,
@@ -170,6 +171,8 @@ pub struct ShellPrefs {
     pub panel: Option<Panel>,
     /// Link this device's projects to RevuCraft's punch lists (off by default).
     pub revucraft_link: bool,
+    /// The pane layout (splits and the tabs in each pane), kept between runs.
+    pub layout: Option<panes::Pane>,
 }
 
 /// The whole shell.
@@ -177,10 +180,10 @@ pub struct Shell {
     pub projects: Vec<OpenProject>,
     /// The project the window shows (an index into `projects`); none on the start page.
     pub current: Option<usize>,
-    /// The view or spreadsheet the window shows.
-    pub tab: Tab,
-    /// Whether the spreadsheet tab is shown in the tab bar.
-    pub sheet_open: bool,
+    /// The panes: a tree of splits whose leaves are tab groups.
+    pub layout: panes::Pane,
+    /// The leaf (pane) the ribbon acts on, counting panes from the top-left.
+    pub focus: usize,
     pub panel: Panel,
     pub left_open: bool,
     pub right_open: bool,
@@ -205,11 +208,12 @@ impl Shell {
             .and_then(|d| std::fs::read(d.join("shell.json")).ok())
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or(ShellPrefs { left_open: true, right_open: true, ..ShellPrefs::default() });
+        let layout = prefs.layout.clone().filter(|l| l.leaf_count() > 0).unwrap_or_default();
         Shell {
             projects: Vec::new(),
             current: None,
-            tab: Tab::View(View::Gantt),
-            sheet_open: false,
+            layout,
+            focus: 0,
             panel: prefs.panel.unwrap_or(Panel::Explorer),
             left_open: prefs.left_open,
             right_open: prefs.right_open,
@@ -271,8 +275,28 @@ impl Shell {
 
     /// Shows the spreadsheet tab (adding it if needed).
     pub fn show_spreadsheet_tab(&mut self) {
-        self.sheet_open = true;
-        self.tab = Tab::Spreadsheet;
+        let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
+        match found {
+            Some(i) => self.focus = i,
+            None => {
+                if let Some(leaf) = self.layout.leaf_mut(self.focus) {
+                    leaf.tabs.push(Tab::Spreadsheet);
+                    leaf.active = leaf.tabs.len() - 1;
+                }
+            }
+        }
+    }
+
+    /// The tab the focused pane shows.
+    pub fn focused_tab(&self) -> Tab {
+        self.layout.leaf(self.focus).map(|l| l.tab()).unwrap_or(Tab::View(View::Gantt))
+    }
+
+    /// Changes the tab the focused pane shows (the ribbon's View picker uses this).
+    pub fn set_focused_tab(&mut self, tab: Tab) {
+        if let Some(leaf) = self.layout.leaf_mut(self.focus) {
+            leaf.set_tab(tab);
+        }
     }
 
     /// Starts the new project wizard.
@@ -296,6 +320,7 @@ impl Shell {
     }
 
     pub(crate) fn save_prefs(&mut self) {
+        self.prefs.layout = Some(self.layout.clone());
         self.prefs.left_open = self.left_open;
         self.prefs.right_open = self.right_open;
         self.prefs.panel = Some(self.panel);
@@ -412,7 +437,7 @@ impl Shell {
     pub fn show(&mut self, ui: &mut Ui, spreadsheet: &mut dyn FnMut(&mut Ui)) {
         let t = Tokens::get(ui.ctx());
         self.tab_bar(ui, &t);
-        let on_sheet = self.tab == Tab::Spreadsheet;
+        let on_sheet = self.focused_tab() == Tab::Spreadsheet;
         if !on_sheet {
             ribbon::show(self, ui, &t);
         }
@@ -422,21 +447,7 @@ impl Shell {
             inspector::show(self, ui, &t);
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(if on_sheet { t.window } else { t.grid_bg })).show(ui, |ui| {
-            match (self.tab, self.active_project()) {
-                (Tab::Spreadsheet, _) => spreadsheet(ui),
-                (Tab::View(view), Some(project)) => {
-                    if view == View::Calendar {
-                        calendar::show(self, ui, project);
-                    } else if view == View::Kanban {
-                        board::show(self, ui, project);
-                    } else if view.available() {
-                        gantt::show(self, ui, project);
-                    } else {
-                        coming_soon(ui, &t, view);
-                    }
-                }
-                _ => self.start_page(ui, &t),
-            }
+            panes::show(self, ui, &t, spreadsheet);
         });
         if self.wizard.is_some() {
             wizard::show(self, ui.ctx());
@@ -458,34 +469,9 @@ impl Shell {
                     }
                     ui.add_space(4.0);
                     self.project_picker(ui);
-                    ui.add_space(10.0);
-                    let mut pick: Option<Tab> = None;
-                    let mut close_sheet = false;
-                    for v in View::ALL.into_iter().filter(|v| v.available()) {
-                        let (clicked, _) = tab_button(ui, t, v.label(), self.tab == Tab::View(v), false);
-                        if clicked {
-                            pick = Some(Tab::View(v));
-                        }
-                    }
-                    if self.sheet_open {
-                        let (clicked, closed) = tab_button(ui, t, "Spreadsheet", self.tab == Tab::Spreadsheet, true);
-                        if clicked {
-                            pick = Some(Tab::Spreadsheet);
-                        }
-                        close_sheet = closed;
-                    }
                     ui.add_space(4.0);
                     if ui.add(egui::Button::new(RichText::new("+").size(16.0)).frame(false)).on_hover_text("New project").clicked() {
                         self.start_wizard();
-                    }
-                    if let Some(tab) = pick {
-                        self.tab = tab;
-                    }
-                    if close_sheet {
-                        self.sheet_open = false;
-                        if self.tab == Tab::Spreadsheet {
-                            self.tab = Tab::View(View::Gantt);
-                        }
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Info, self.right_open)
@@ -531,7 +517,7 @@ impl Shell {
         });
     }
 
-    fn start_page(&mut self, ui: &mut Ui, t: &Tokens) {
+    pub(crate) fn start_page(&mut self, ui: &mut Ui, t: &Tokens) {
         ui.vertical_centered(|ui| {
             ui.add_space(ui.available_height() * 0.2);
             ui.label(RichText::new("PlanCraft").size(30.0).color(t.text).strong());
@@ -565,7 +551,7 @@ impl Shell {
     }
 }
 
-fn coming_soon(ui: &mut Ui, t: &Tokens, view: View) {
+pub(crate) fn coming_soon(ui: &mut Ui, t: &Tokens, view: View) {
     ui.vertical_centered(|ui| {
         ui.add_space(ui.available_height() * 0.3);
         ui.label(RichText::new(view.label()).size(20.0).color(t.text));
@@ -610,22 +596,26 @@ mod tests;
 
 /// One tab in the tab bar: its title, and a × to close it when `closable`.
 /// Returns (title clicked, × clicked).
-fn tab_button(ui: &mut Ui, t: &Tokens, title: &str, active: bool, closable: bool) -> (bool, bool) {
-    let mut out = (false, false);
+/// One tab in a pane's tab strip: its title, and a × to close it when `closable`.
+/// Returns the title's response (for clicks and menus) and whether the × was clicked.
+pub(crate) fn tab_button(ui: &mut Ui, t: &Tokens, title: &str, active: bool, closable: bool) -> (egui::Response, bool) {
+    let mut label = None;
+    let mut closed = false;
     let fill = if active { t.tab_active } else { t.tab_bar };
     egui::Frame::NONE.fill(fill).corner_radius(egui::CornerRadius { nw: 6, ne: 6, sw: 0, se: 0 }).inner_margin(egui::Margin::symmetric(10, 5)).show(
         ui,
         |ui| {
             ui.horizontal(|ui| {
-                let r = ui.add(egui::Label::new(RichText::new(title).color(if active { t.text } else { t.text_dim })).sense(egui::Sense::click()));
-                out.0 = r.clicked();
+                label =
+                    Some(ui.add(egui::Label::new(RichText::new(title).color(if active { t.text } else { t.text_dim })).sense(egui::Sense::click())));
                 if closable
                     && ui.add(egui::Button::new(RichText::new("×").color(t.text_dim)).frame(false).small()).on_hover_text("Close tab").clicked()
                 {
-                    out.1 = true;
+                    closed = true;
                 }
             });
         },
     );
-    out
+    let resp = label.unwrap_or_else(|| ui.label(""));
+    (resp, closed)
 }

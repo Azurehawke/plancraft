@@ -184,10 +184,10 @@ fn renders_calendar_and_board() {
     shell.run(0, "task.setStatus", json!({"task": "2.3", "status": "Review"})).unwrap();
     shell.run(0, "task.setStatus", json!({"task": "3.1", "status": "Backlog"})).unwrap();
     shell.run(0, "resource.set", json!({"resource": "Tech 1", "field": "color", "value": "#f2a93b"})).unwrap();
-    shell.tab = Tab::View(View::Calendar);
+    shell.set_focused_tab(Tab::View(View::Calendar));
     shell.projects[0].cal_month = Some((2026, 11));
     render(&mut shell, "calendar", egui::vec2(1500.0, 820.0), false);
-    shell.tab = Tab::View(View::Kanban);
+    shell.set_focused_tab(Tab::View(View::Kanban));
     let pick = shell.projects[0].project.find_task("2.2").unwrap().id.clone();
     shell.projects[0].select_only(pick);
     render(&mut shell, "board", egui::vec2(1600.0, 820.0), false);
@@ -267,13 +267,53 @@ fn one_project_is_shown_at_a_time_and_switching_keeps_the_view() {
     shell.open_project(&dir.path().join("Other Job.plan"));
     assert_eq!(shell.active_project(), Some(1), "a newly opened project is the one shown");
     shell.focus_project(0);
-    shell.tab = Tab::View(View::Kanban);
+    shell.set_focused_tab(Tab::View(View::Kanban));
     shell.focus_project(1);
     assert_eq!(shell.active_project(), Some(1));
-    assert_eq!(shell.tab, Tab::View(View::Kanban), "switching project keeps the view");
+    assert_eq!(shell.focused_tab(), Tab::View(View::Kanban), "switching project keeps the view");
     shell.show_spreadsheet_tab();
-    assert!(shell.sheet_open);
-    assert_eq!(shell.tab, Tab::Spreadsheet);
+    assert_eq!(shell.focused_tab(), Tab::Spreadsheet);
     shell.focus_project(99);
     assert_eq!(shell.active_project(), Some(1), "an unknown project index is ignored");
+}
+
+#[test]
+fn panes_split_close_and_keep_their_own_tabs() {
+    use crate::panes::{Dir, Pane};
+    let mut layout = Pane::default();
+    assert_eq!(layout.leaf_count(), 1);
+    assert!(layout.split(0, Dir::Right));
+    assert_eq!(layout.leaf_count(), 2);
+    layout.leaf_mut(1).unwrap().set_tab(Tab::View(View::Calendar));
+    assert_eq!(layout.leaf(0).unwrap().tab(), Tab::View(View::Gantt), "the first pane keeps its tab");
+    assert_eq!(layout.leaf(1).unwrap().tab(), Tab::View(View::Calendar));
+    assert!(layout.split(1, Dir::Down));
+    assert_eq!(layout.leaf_count(), 3);
+    assert!(layout.close(1));
+    assert_eq!(layout.leaf_count(), 2);
+    assert!(layout.close(0));
+    assert_eq!(layout.leaf_count(), 1);
+    assert!(!layout.close(0), "the last pane is never closed");
+}
+
+#[test]
+fn the_pane_layout_is_kept_between_runs() {
+    use crate::panes::Dir;
+    let dir = tempfile::tempdir().unwrap();
+    let settings = dir.path().join("settings");
+    let mut shell = Shell::new("laptop", Some(settings.clone()), d("2026-11-04"));
+    shell.layout.split(0, Dir::Right);
+    shell.save_prefs();
+    let again = Shell::new("laptop", Some(settings), d("2026-11-04"));
+    assert_eq!(again.layout.leaf_count(), 2);
+}
+
+#[test]
+fn renders_two_panes_side_by_side() {
+    use crate::panes::Dir;
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.layout.split(0, Dir::Right);
+    shell.layout.leaf_mut(1).unwrap().set_tab(Tab::View(View::Kanban));
+    render(&mut shell, "two-panes", egui::vec2(1500.0, 760.0), false);
 }
