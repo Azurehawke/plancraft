@@ -334,6 +334,23 @@ fn the_document_commands_make_and_open_untitled_documents() {
 }
 
 #[test]
+fn closing_a_project_returns_to_the_launch_page() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.set_focused_tab(Tab::Documents);
+    let pi = shell.active_project().unwrap();
+    crate::documents::new_untitled(&mut shell, pi);
+    let folder = shell.projects[pi].dir().to_path_buf();
+    shell.layout.split(0, crate::panes::Dir::Right);
+    shell.close_project();
+    assert!(shell.active_project().is_none(), "no project is shown after closing");
+    assert!(shell.projects.is_empty(), "the project is unloaded from the window");
+    assert_eq!(shell.layout.leaf_count(), 1, "the launch page takes one pane");
+    assert!(folder.join("documents").join("Untitled.md").exists(), "the project's files stay on disk");
+    render(&mut shell, "launch-after-close", egui::vec2(1100.0, 650.0), false);
+}
+
+#[test]
 fn renders_a_floating_pane_over_the_layout() {
     use crate::panes::{Float, Leaf};
     let dir = tempfile::tempdir().unwrap();
