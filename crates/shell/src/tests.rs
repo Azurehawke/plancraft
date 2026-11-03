@@ -319,6 +319,22 @@ fn renders_two_panes_side_by_side() {
 }
 
 #[test]
+fn renders_a_floating_pane_over_the_layout() {
+    use crate::panes::{Float, Leaf};
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.floating.push(Float {
+        id: 1,
+        leaf: Leaf { tabs: vec![Tab::View(View::Kanban)], active: 0 },
+        pos: egui::pos2(300.0, 120.0),
+        size: egui::vec2(440.0, 320.0),
+    });
+    render(&mut shell, "float", egui::vec2(1500.0, 760.0), false);
+    assert_eq!(shell.floating.len(), 1, "the float stays until it is docked or closed");
+    assert_eq!(shell.layout.leaf_count(), 1, "floating does not change the docked layout");
+}
+
+#[test]
 fn documents_are_plain_markdown_files_in_the_documents_folder() {
     use crate::documents;
     let dir = tempfile::tempdir().unwrap();
@@ -364,7 +380,7 @@ fn renders_the_markdown_preview_and_editor_toolbar() {
     let project = shell.projects[0].dir().to_path_buf();
     crate::documents::write(
         &project,
-        &crate::documents::create(&project, "Charter").map(|n| n).unwrap(),
+        &crate::documents::create(&project, "Charter").unwrap(),
         "# Charter\n\nThe **network install** covers *two* floors with `Cat6` drops.\n\n- Survey the rooms\n- Map the drops\n\n> Ask the owner first.\n\n```\nswitch port 12\n```\n",
     )
     .unwrap();
