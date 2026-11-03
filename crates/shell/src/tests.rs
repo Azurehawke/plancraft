@@ -317,3 +317,42 @@ fn renders_two_panes_side_by_side() {
     shell.layout.leaf_mut(1).unwrap().set_tab(Tab::View(View::Kanban));
     render(&mut shell, "two-panes", egui::vec2(1500.0, 760.0), false);
 }
+
+#[test]
+fn documents_are_plain_markdown_files_in_the_documents_folder() {
+    use crate::documents;
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+    assert_eq!(documents::list(project), Vec::<String>::new(), "no documents folder yet");
+    let charter = documents::create(project, "Charter").unwrap();
+    assert_eq!(charter, "Charter.md");
+    assert!(documents::create(project, "Charter.md").is_err(), "never overwrites a document");
+    documents::create(project, "agenda").unwrap();
+    assert_eq!(documents::list(project), vec!["agenda.md", "Charter.md"], "sorted without regard to case");
+    assert!(documents::read(project, "Charter.md").unwrap().starts_with("# Charter"));
+    documents::write(project, "Charter.md", "# Charter\n\nScope: the network install.\n").unwrap();
+    assert!(documents::read(project, "Charter.md").unwrap().contains("Scope"));
+    let renamed = documents::rename(project, "agenda.md", "Weekly agenda").unwrap();
+    assert_eq!(renamed, "Weekly agenda.md");
+    assert!(documents::rename(project, "Weekly agenda.md", "Charter").is_err(), "never overwrites on rename");
+    documents::delete(project, "Weekly agenda.md").unwrap();
+    assert_eq!(documents::list(project), vec!["Charter.md"]);
+    // Names can't leave the documents folder or break the file system.
+    for bad in ["", "   ", "../escape", "a/b", "a\\b", ".hidden", "bad:name", "x".repeat(101).as_str()] {
+        assert!(documents::file_name(bad).is_err(), "{bad:?} should be refused");
+    }
+    assert!(documents::read(project, "../Charter.md").is_err());
+    assert!(documents::write(project, "../evil.md", "x").is_err());
+    assert!(!project.join("evil.md").exists());
+}
+
+#[test]
+fn renders_the_documents_tab() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let project = shell.projects[0].dir().to_path_buf();
+    crate::documents::create(&project, "Charter").unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    shell.run(0, "project.setInfo", json!({"field": "title", "value": "Acme Network"}));
+    render(&mut shell, "documents", egui::vec2(1500.0, 760.0), false);
+}

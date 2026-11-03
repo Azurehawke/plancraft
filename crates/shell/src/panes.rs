@@ -302,6 +302,7 @@ fn leaf_ui(
             for (k, tab) in tabs.iter().enumerate() {
                 let title = match tab {
                     Tab::Spreadsheet => "Spreadsheet".to_string(),
+                    Tab::Documents => "Documents".to_string(),
                     Tab::View(v) => v.label().to_string(),
                 };
                 let (resp, closed) = tab_button(ui, t, &title, k == leaf.active, true);
@@ -339,6 +340,11 @@ fn leaf_ui(
                         ui.close();
                     }
                 }
+                if ui.button("Documents").clicked() {
+                    leaf.tabs.push(Tab::Documents);
+                    leaf.active = leaf.tabs.len() - 1;
+                    ui.close();
+                }
                 if ui.button("Spreadsheet").clicked() {
                     leaf.tabs.push(Tab::Spreadsheet);
                     leaf.active = leaf.tabs.len() - 1;
@@ -354,6 +360,13 @@ fn leaf_ui(
     }
     match leaf.tab() {
         Tab::Spreadsheet => spreadsheet(ui),
+        Tab::Documents => {
+            if shell.active_project().is_some() {
+                crate::documents::show(shell, ui, t);
+            } else {
+                shell.start_page(ui, t);
+            }
+        }
         Tab::View(view) => match shell.active_project() {
             Some(project) => {
                 if view == View::Calendar {
