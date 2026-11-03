@@ -25,6 +25,7 @@ mod calendar;
 mod documents;
 mod gantt;
 mod inspector;
+pub mod markdown;
 pub mod panes;
 mod project;
 mod ribbon;

@@ -38,6 +38,8 @@ pub struct DocState {
     pub rename_to: Option<String>,
     pub confirm_delete: bool,
     pub error: Option<String>,
+    /// Whether the editor shows the rendered preview instead of the text.
+    pub preview: bool,
 }
 
 /// The documents folder of a `.plan` folder.
@@ -169,7 +171,8 @@ impl Shell {
     }
 
     /// Opens a document in the editor, saving the one that was open first.
-    fn open_document(&mut self, name: &str) {
+    pub(crate) fn open_document(&mut self, name: &str) {
+        self.sync_documents();
         self.flush_document();
         let Some(pi) = self.documents.project else { return };
         let Some(dir) = self.projects.get(pi).map(|p| p.dir().to_path_buf()) else { return };
@@ -268,40 +271,54 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
         if let Some(e) = shell.documents.error.clone() {
             ui.label(RichText::new(e).color(t.danger));
         }
-        match shell.documents.selected.clone() {
-            Some(name) => {
-                let r = ui.add(
+        let Some(name) = shell.documents.selected.clone() else {
+            ui.label(RichText::new("Choose a document on the left, or make a new one.").color(t.text_dim));
+            return;
+        };
+        let edit_id = ui.scope_id().with(("doc_text", &name));
+        toolbar(shell, ui, t, edit_id);
+        let title = ui.label(RichText::new(name.strip_suffix(".md").unwrap_or(&name)).strong().color(t.text));
+        ui.separator();
+        if shell.documents.preview {
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                crate::markdown::show(ui, t, &shell.documents.text);
+            });
+        } else {
+            let r = egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
                     egui::TextEdit::multiline(&mut shell.documents.text)
-                        .id(ui.scope_id().with(("doc_text", &name)))
+                        .id(edit_id)
                         .desired_width(f32::INFINITY)
                         .desired_rows(40)
                         .frame(egui::Frame::NONE)
-                        .lock_focus(true),
-                );
-                let now = shell.clock_ms;
-                if r.changed() {
-                    shell.documents.dirty_since.get_or_insert(now);
-                }
-                if let Some(since) = shell.documents.dirty_since {
-                    let waited = (now - since).max(0.0);
-                    if waited >= SAVE_DELAY_MS {
-                        shell.flush_document();
-                    } else {
-                        ui.ctx().request_repaint_after(Duration::from_millis((SAVE_DELAY_MS - waited) as u64));
-                    }
-                }
-                // Another device may have changed the file: take its text when nothing is unsaved here.
-                if shell.documents.dirty_since.is_none()
-                    && let Some(seen) = shell.documents.seen
-                    && let Some(now) = modified(&dir, &name)
-                    && now != seen
-                {
-                    open = Some(name.clone());
-                }
+                        .lock_focus(true)
+                        .show(ui)
+                        .response
+                        .response
+                        .labelled_by(title.id)
+                })
+                .inner;
+            if r.changed() {
+                shell.documents.dirty_since.get_or_insert(shell.clock_ms);
             }
-            None => {
-                ui.label(RichText::new("Choose a document on the left, or make a new one.").color(t.text_dim));
+        }
+        let now = shell.clock_ms;
+        if let Some(since) = shell.documents.dirty_since {
+            let waited = (now - since).max(0.0);
+            if waited >= SAVE_DELAY_MS {
+                shell.flush_document();
+            } else {
+                ui.ctx().request_repaint_after(Duration::from_millis((SAVE_DELAY_MS - waited) as u64));
             }
+        }
+        // Another device may have changed the file: take its text when nothing is unsaved here.
+        if shell.documents.dirty_since.is_none()
+            && let Some(seen) = shell.documents.seen
+            && let Some(changed) = modified(&dir, &name)
+            && changed != seen
+        {
+            open = Some(name.clone());
         }
     });
 
@@ -326,4 +343,56 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
     if let Some(name) = open {
         shell.open_document(&name);
     }
+}
+
+/// The formatting row above the editor, and the Preview switch.
+fn toolbar(shell: &mut Shell, ui: &mut Ui, t: &Tokens, edit_id: egui::Id) {
+    use crate::markdown::Fmt;
+    let buttons: [(&str, &str, Fmt); 10] = [
+        ("B", "Bold", Fmt::Bold),
+        ("I", "Italic", Fmt::Italic),
+        ("`", "Inline code", Fmt::Code),
+        ("Link", "Link", Fmt::Link),
+        ("H1", "Heading 1", Fmt::Heading(1)),
+        ("H2", "Heading 2", Fmt::Heading(2)),
+        ("•", "Bulleted list", Fmt::Bullet),
+        ("1.", "Numbered list", Fmt::Numbered),
+        ("\u{201C}", "Quote", Fmt::Quote),
+        ("```", "Code block", Fmt::CodeBlock),
+    ];
+    ui.horizontal_wrapped(|ui| {
+        for (label, tip, fmt) in buttons {
+            if ui.button(RichText::new(label).size(12.0)).on_hover_text(tip).clicked() {
+                apply_format(shell, ui.ctx(), edit_id, fmt);
+            }
+        }
+        if ui.button(RichText::new("—").size(12.0)).on_hover_text("Horizontal rule").clicked() {
+            apply_format(shell, ui.ctx(), edit_id, Fmt::Rule);
+        }
+        ui.add_space(12.0);
+        let preview = shell.documents.preview;
+        if ui.selectable_label(preview, RichText::new("Preview").color(if preview { t.accent } else { t.text_dim })).clicked() {
+            shell.documents.preview = !preview;
+        }
+    });
+}
+
+/// Applies an editor command to the open document, at the editor's current selection.
+fn apply_format(shell: &mut Shell, ctx: &egui::Context, edit_id: egui::Id, fmt: crate::markdown::Fmt) {
+    use egui::text::CCursor;
+    let len = shell.documents.text.chars().count();
+    let state = egui::TextEdit::load_state(ctx, edit_id);
+    let (start, end) = match state.as_ref().and_then(|s| s.cursor.char_range()) {
+        Some(range) => {
+            let (a, b) = (usize::from(range.primary.index), usize::from(range.secondary.index));
+            (a.min(b), a.max(b))
+        }
+        None => (len, len),
+    };
+    let (text, a, b) = crate::markdown::format(&shell.documents.text, start, end, fmt);
+    shell.documents.text = text;
+    shell.documents.dirty_since.get_or_insert(shell.clock_ms);
+    let mut st = state.unwrap_or_default();
+    st.cursor.set_char_range(Some(egui::text::CCursorRange::two(CCursor::new(a), CCursor::new(b))));
+    st.store(ctx, edit_id);
 }
