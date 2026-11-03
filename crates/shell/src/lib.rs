@@ -189,6 +189,8 @@ pub struct Shell {
     pub focus: usize,
     /// The Documents tab's editor state.
     pub documents: documents::DocState,
+    /// The app's clock at the last frame, in milliseconds (the shell never reads the clock itself).
+    pub clock_ms: f64,
     pub panel: Panel,
     pub left_open: bool,
     pub right_open: bool,
@@ -220,6 +222,7 @@ impl Shell {
             layout,
             focus: 0,
             documents: documents::DocState::default(),
+            clock_ms: 0.0,
             panel: prefs.panel.unwrap_or(Panel::Explorer),
             left_open: prefs.left_open,
             right_open: prefs.right_open,
@@ -358,6 +361,7 @@ impl Shell {
     /// Reloads projects whose files another device changed (cheap: compares file sizes and times),
     /// and, with the RevuCraft link on, brings in any punch list that changed.
     pub fn poll(&mut self, now_ms: f64) {
+        self.clock_ms = now_ms;
         let today = self.today;
         for p in &mut self.projects {
             p.poll(now_ms, today);

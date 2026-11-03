@@ -4,7 +4,7 @@
 //! produce a Syncthing conflict copy; the editor never merges them.
 
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
 use egui::{RichText, Ui};
 use gridcraft_ui_egui::theme::Tokens;
@@ -17,7 +17,7 @@ const EXT: &str = "md";
 /// Largest document the editor opens (a guard against a huge or binary file).
 const MAX_BYTES: u64 = 4 * 1024 * 1024;
 /// How long the editor waits after the last keystroke before it saves.
-const SAVE_DELAY: Duration = Duration::from_millis(800);
+const SAVE_DELAY_MS: f64 = 800.0;
 
 /// The editor's state: which document is open, its text, and what is unsaved.
 #[derive(Debug, Default)]
@@ -29,8 +29,8 @@ pub struct DocState {
     pub text: String,
     /// The text as last read from or written to the file.
     pub saved: String,
-    /// When the text last changed and is still unsaved.
-    pub dirty_since: Option<Instant>,
+    /// When the text last changed and is still unsaved (the shell's clock, in milliseconds).
+    pub dirty_since: Option<f64>,
     /// The file's modification time when it was last read or written.
     pub seen: Option<SystemTime>,
     pub new_name: String,
@@ -278,16 +278,16 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                         .frame(egui::Frame::NONE)
                         .lock_focus(true),
                 );
+                let now = shell.clock_ms;
                 if r.changed() {
-                    shell.documents.dirty_since.get_or_insert_with(Instant::now);
+                    shell.documents.dirty_since.get_or_insert(now);
                 }
-                let dirty = shell.documents.dirty_since;
-                if let Some(since) = dirty {
-                    let waited = since.elapsed();
-                    if waited >= SAVE_DELAY {
+                if let Some(since) = shell.documents.dirty_since {
+                    let waited = (now - since).max(0.0);
+                    if waited >= SAVE_DELAY_MS {
                         shell.flush_document();
                     } else {
-                        ui.ctx().request_repaint_after(SAVE_DELAY - waited);
+                        ui.ctx().request_repaint_after(Duration::from_millis((SAVE_DELAY_MS - waited) as u64));
                     }
                 }
                 // Another device may have changed the file: take its text when nothing is unsaved here.
