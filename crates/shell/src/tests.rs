@@ -319,6 +319,21 @@ fn renders_two_panes_side_by_side() {
 }
 
 #[test]
+fn the_document_commands_make_and_open_untitled_documents() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let pi = shell.active_project().unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    crate::documents::new_untitled(&mut shell, pi);
+    crate::documents::new_untitled(&mut shell, pi);
+    let project = shell.projects[pi].dir().to_path_buf();
+    let names = crate::documents::list(&project);
+    assert!(names.contains(&"Untitled.md".to_string()) && names.contains(&"Untitled 2.md".to_string()), "{names:?}");
+    assert_eq!(shell.documents.selected.as_deref(), Some("Untitled 2.md"), "the newest document opens");
+    render(&mut shell, "documents-ribbon", egui::vec2(1500.0, 760.0), false);
+}
+
+#[test]
 fn renders_a_floating_pane_over_the_layout() {
     use crate::panes::{Float, Leaf};
     let dir = tempfile::tempdir().unwrap();
