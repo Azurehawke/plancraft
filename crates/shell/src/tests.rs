@@ -184,10 +184,10 @@ fn renders_calendar_and_board() {
     shell.run(0, "task.setStatus", json!({"task": "2.3", "status": "Review"})).unwrap();
     shell.run(0, "task.setStatus", json!({"task": "3.1", "status": "Backlog"})).unwrap();
     shell.run(0, "resource.set", json!({"resource": "Tech 1", "field": "color", "value": "#f2a93b"})).unwrap();
-    shell.tabs[0] = Tab::Project { project: 0, view: View::Calendar };
+    shell.tab = Tab::View(View::Calendar);
     shell.projects[0].cal_month = Some((2026, 11));
     render(&mut shell, "calendar", egui::vec2(1500.0, 820.0), false);
-    shell.tabs[0] = Tab::Project { project: 0, view: View::Kanban };
+    shell.tab = Tab::View(View::Kanban);
     let pick = shell.projects[0].project.find_task("2.2").unwrap().id.clone();
     shell.projects[0].select_only(pick);
     render(&mut shell, "board", egui::vec2(1600.0, 820.0), false);
@@ -257,4 +257,23 @@ fn renders_a_punch_task_from_revucraft() {
     render(&mut shell, "revucraft-punch", egui::vec2(1500.0, 820.0), false);
     shell.panel = crate::Panel::Settings;
     render(&mut shell, "revucraft-settings", egui::vec2(1500.0, 820.0), false);
+}
+
+#[test]
+fn one_project_is_shown_at_a_time_and_switching_keeps_the_view() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    drop(plancraft_project_sync::ProjectFolder::create(dir.path(), "Other Job", "laptop").unwrap());
+    shell.open_project(&dir.path().join("Other Job.plan"));
+    assert_eq!(shell.active_project(), Some(1), "a newly opened project is the one shown");
+    shell.focus_project(0);
+    shell.tab = Tab::View(View::Kanban);
+    shell.focus_project(1);
+    assert_eq!(shell.active_project(), Some(1));
+    assert_eq!(shell.tab, Tab::View(View::Kanban), "switching project keeps the view");
+    shell.show_spreadsheet_tab();
+    assert!(shell.sheet_open);
+    assert_eq!(shell.tab, Tab::Spreadsheet);
+    shell.focus_project(99);
+    assert_eq!(shell.active_project(), Some(1), "an unknown project index is ignored");
 }

@@ -155,9 +155,9 @@ fn schedule_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
 
 fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
     group(ui, t, "View", |ui| {
-        let current = match shell.tabs.get(shell.active) {
-            Some(Tab::Project { view, .. }) => *view,
-            _ => View::Gantt,
+        let current = match shell.tab {
+            Tab::View(v) => v,
+            Tab::Spreadsheet => View::Gantt,
         };
         ui.vertical(|ui| {
             let mut chosen = current;
@@ -167,10 +167,8 @@ fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
                     ui.selectable_value(&mut chosen, v, label);
                 }
             });
-            if chosen != current
-                && let Some(Tab::Project { view, .. }) = shell.tabs.get_mut(shell.active)
-            {
-                *view = chosen;
+            if chosen != current {
+                shell.tab = Tab::View(chosen);
             }
             ui.horizontal(|ui| {
                 let Some(p) = shell.projects.get_mut(pi) else { return };
