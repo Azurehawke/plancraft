@@ -413,7 +413,7 @@ fn main() -> eframe::Result<()> {
         open_file(&mut shell, &mut app, f);
     }
     // A sample or a workbook named on the command line starts on the spreadsheet tab.
-    if sample.is_some() && shell.tabs.is_empty() {
+    if sample.is_some() && shell.current.is_none() {
         shell.show_spreadsheet_tab();
     }
     let pending_shell = std::cell::Cell::new(Some(shell));

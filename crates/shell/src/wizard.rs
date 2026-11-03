@@ -10,7 +10,7 @@ use plancraft_project::Method;
 use plancraft_project_sync::ProjectFolder;
 use serde_json::json;
 
-use crate::{OpenProject, Request, Shell, Tab, View};
+use crate::{OpenProject, Request, Shell};
 
 const STEPS: [&str; 6] = ["Basics", "Dates", "People", "Budget", "Method", "Review"];
 
@@ -246,8 +246,7 @@ fn create(shell: &mut Shell) {
     let p = OpenProject::from_folder(f, shell.today);
     shell.remember_recent(p.dir().to_path_buf());
     shell.projects.push(p);
-    shell.tabs.push(Tab::Project { project: shell.projects.len() - 1, view: View::Gantt });
-    shell.active = shell.tabs.len() - 1;
+    shell.focus_project(shell.projects.len() - 1);
     shell.wizard = None;
     if !errors.is_empty() {
         shell.message = Some(format!("Project created; some answers weren't saved: {}", errors.join("; ")));
