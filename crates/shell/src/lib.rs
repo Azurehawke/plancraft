@@ -286,6 +286,22 @@ impl Shell {
         }
     }
 
+    /// Closes the project the window shows: its open document is saved, and the project is
+    /// unloaded from this window. Its files stay where they are. The window returns to the
+    /// launch page (a standalone spreadsheet tab is kept).
+    pub fn close_project(&mut self) {
+        let Some(pi) = self.active_project() else { return };
+        self.flush_document();
+        self.projects.remove(pi);
+        self.current = None;
+        self.documents = documents::DocState::default();
+        let keep_sheet = (0..self.layout.leaf_count()).any(|i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
+        self.layout = if keep_sheet { panes::Pane::Leaf(panes::Leaf { tabs: vec![Tab::Spreadsheet], active: 0 }) } else { panes::Pane::default() };
+        self.focus = 0;
+        self.floating.clear();
+        self.save_prefs();
+    }
+
     /// Shows the spreadsheet tab (adding it if needed).
     pub fn show_spreadsheet_tab(&mut self) {
         let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
@@ -483,6 +499,14 @@ impl Shell {
                     }
                     ui.add_space(4.0);
                     self.project_picker(ui);
+                    if self.active_project().is_some()
+                        && ui
+                            .add(egui::Button::new(RichText::new("×").size(16.0).color(t.text_dim)).frame(false))
+                            .on_hover_text("Close project (back to the launch page)")
+                            .clicked()
+                    {
+                        self.close_project();
+                    }
                     ui.add_space(4.0);
                     if ui.add(egui::Button::new(RichText::new("+").size(16.0)).frame(false)).on_hover_text("New project").clicked() {
                         self.start_wizard();

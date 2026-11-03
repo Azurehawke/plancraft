@@ -348,7 +348,9 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
 /// Makes a new document in project `pi` named "Untitled" (or "Untitled 2", …) and opens it.
 pub(crate) fn new_untitled(shell: &mut Shell, pi: usize) {
     let Some(dir) = shell.projects.get(pi).map(|p| p.dir().to_path_buf()) else { return };
-    let free = (1..1000).map(|n| if n == 1 { "Untitled".to_string() } else { format!("Untitled {n}") }).find(|typed| !folder(&dir).join(format!("{typed}.md")).exists());
+    let free = (1..1000)
+        .map(|n| if n == 1 { "Untitled".to_string() } else { format!("Untitled {n}") })
+        .find(|typed| !folder(&dir).join(format!("{typed}.md")).exists());
     match free {
         Some(typed) => match create(&dir, &typed) {
             Ok(name) => shell.open_document(&name),
