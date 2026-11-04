@@ -30,12 +30,13 @@ pub mod panes;
 mod project;
 mod ribbon;
 mod sidebar;
+mod theme;
 mod wizard;
 
+use gridcraft_ui_egui::theme::Tokens;
 use std::path::{Path, PathBuf};
 
 use egui::{Color32, RichText, Ui};
-use gridcraft_ui_egui::theme::Tokens;
 use plancraft_project::Date;
 
 pub use project::OpenProject;
@@ -178,6 +179,8 @@ pub struct ShellPrefs {
     pub revucraft_link: bool,
     /// The pane layout (splits and the tabs in each pane), kept between runs.
     pub layout: Option<panes::Pane>,
+    /// RevuCraft's accent colour for this device (amber unless changed).
+    pub accent: theme::Accent,
 }
 
 /// The whole shell.
@@ -486,12 +489,13 @@ impl Shell {
 
     /// Draws the shell. `spreadsheet` draws the spreadsheet tab's contents into the given Ui.
     pub fn show(&mut self, ui: &mut Ui, spreadsheet: &mut dyn FnMut(&mut Ui)) {
-        let t = Tokens::get(ui.ctx());
+        let t = crate::theme::tokens(ui.ctx());
         self.menu_bar(ui, &t);
         self.tab_bar(ui, &t);
         if self.active_project().is_some() {
             self.mode_bar(ui, &t);
         }
+        theme::remember(ui.ctx(), self.prefs.accent);
         let on_sheet = self.focused_tab() == Tab::Spreadsheet;
         if !on_sheet && !self.read_mode {
             ribbon::show(self, ui, &t);
@@ -555,6 +559,16 @@ impl Shell {
                             if ui.button("Spreadsheet").clicked() {
                                 self.show_spreadsheet_tab();
                                 ui.close();
+                            }
+                        });
+                        ui.separator();
+                        ui.menu_button("Accent colour", |ui| {
+                            for accent in theme::Accent::ALL {
+                                if ui.selectable_label(self.prefs.accent == accent, accent.label()).clicked() {
+                                    self.prefs.accent = accent;
+                                    self.save_prefs();
+                                    ui.close();
+                                }
                             }
                         });
                     });

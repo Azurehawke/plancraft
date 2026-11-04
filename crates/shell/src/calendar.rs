@@ -4,7 +4,6 @@
 //! "start no earlier than", as in the Gantt); double-click a day to add a task starting that day.
 
 use egui::{Align2, FontId, Rect, RichText, Sense, Shape, Stroke, Ui, pos2, vec2};
-use gridcraft_ui_egui::theme::Tokens;
 use plancraft_project::{Date, TaskId};
 use serde_json::json;
 
@@ -28,7 +27,7 @@ struct Segment {
 // One pass lays out the weeks and their bars; split, the pieces would share a dozen locals.
 #[allow(clippy::cognitive_complexity)]
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, pi: usize) {
-    let t = Tokens::get(ui.ctx());
+    let t = crate::theme::tokens(ui.ctx());
     let today = shell.today;
     let Some(p) = shell.projects.get_mut(pi) else { return };
     let (y, m) = p.cal_month.unwrap_or((p.schedule.start.year(), p.schedule.start.month()));

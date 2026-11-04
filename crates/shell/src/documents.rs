@@ -3,11 +3,11 @@
 //! them and Syncthing carries them with the project. Two devices editing the same file at once
 //! produce a Syncthing conflict copy; the editor never merges them.
 
+use gridcraft_ui_egui::theme::Tokens;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use egui::{RichText, Ui};
-use gridcraft_ui_egui::theme::Tokens;
 
 use crate::Shell;
 

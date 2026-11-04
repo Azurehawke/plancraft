@@ -18,7 +18,7 @@ const CARD_GAP: f32 = 8.0;
 struct Card(TaskId);
 
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, pi: usize) {
-    let t = Tokens::get(ui.ctx());
+    let t = crate::theme::tokens(ui.ctx());
     let today = shell.today;
     let Some(p) = shell.projects.get_mut(pi) else { return };
     let project = p.project.clone();
