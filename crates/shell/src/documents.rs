@@ -40,6 +40,10 @@ pub struct DocState {
     pub error: Option<String>,
     /// Whether the editor shows the rendered preview instead of the text.
     pub preview: bool,
+    /// The open document's editor, for the Format group's commands and the live preview.
+    pub edit_id: Option<egui::Id>,
+    /// The markers copied by the Format group's Copy format, for Paste format.
+    pub painter: Option<Vec<&'static str>>,
 }
 
 /// The documents folder of a `.plan` folder.
@@ -276,7 +280,7 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
             return;
         };
         let edit_id = ui.scope_id().with(("doc_text", &name));
-        toolbar(shell, ui, t, edit_id);
+        shell.documents.edit_id = Some(edit_id);
         let title = ui.label(RichText::new(name.strip_suffix(".md").unwrap_or(&name)).strong().color(t.text));
         ui.separator();
         if shell.documents.preview {
@@ -284,11 +288,21 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                 crate::markdown::show(ui, t, &shell.documents.text);
             });
         } else {
+            // The live preview styles the text as it is typed; the cursor's line keeps its markers.
+            let cursor_line = egui::TextEdit::load_state(ui.ctx(), edit_id)
+                .and_then(|st| st.cursor.char_range())
+                .map(|r| line_of(&shell.documents.text, usize::from(r.primary.index)));
+            let mut layouter = |ui: &egui::Ui, buf: &dyn egui::TextBuffer, wrap_width: f32| {
+                let mut job = crate::markdown::live_job(buf.as_str(), cursor_line, t);
+                job.wrap.max_width = wrap_width;
+                ui.fonts_mut(|f| f.layout_job(job))
+            };
             let r = egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     egui::TextEdit::multiline(&mut shell.documents.text)
                         .id(edit_id)
+                        .layouter(&mut layouter)
                         .desired_width(f32::INFINITY)
                         .desired_rows(40)
                         .frame(egui::Frame::NONE)
@@ -360,54 +374,34 @@ pub(crate) fn new_untitled(shell: &mut Shell, pi: usize) {
     }
 }
 
-/// The formatting row above the editor, and the Preview switch.
-fn toolbar(shell: &mut Shell, ui: &mut Ui, t: &Tokens, edit_id: egui::Id) {
-    use crate::markdown::Fmt;
-    let buttons: [(&str, &str, Fmt); 10] = [
-        ("B", "Bold", Fmt::Bold),
-        ("I", "Italic", Fmt::Italic),
-        ("`", "Inline code", Fmt::Code),
-        ("Link", "Link", Fmt::Link),
-        ("H1", "Heading 1", Fmt::Heading(1)),
-        ("H2", "Heading 2", Fmt::Heading(2)),
-        ("•", "Bulleted list", Fmt::Bullet),
-        ("1.", "Numbered list", Fmt::Numbered),
-        ("\u{201C}", "Quote", Fmt::Quote),
-        ("```", "Code block", Fmt::CodeBlock),
-    ];
-    ui.horizontal_wrapped(|ui| {
-        for (label, tip, fmt) in buttons {
-            if ui.button(RichText::new(label).size(12.0)).on_hover_text(tip).clicked() {
-                apply_format(shell, ui.ctx(), edit_id, fmt);
-            }
-        }
-        if ui.button(RichText::new("—").size(12.0)).on_hover_text("Horizontal rule").clicked() {
-            apply_format(shell, ui.ctx(), edit_id, Fmt::Rule);
-        }
-        ui.add_space(12.0);
-        let preview = shell.documents.preview;
-        if ui.selectable_label(preview, RichText::new("Preview").color(if preview { t.accent } else { t.text_dim })).clicked() {
-            shell.documents.preview = !preview;
-        }
-    });
+/// The line (0-based) that character `char_index` is on.
+fn line_of(text: &str, char_index: usize) -> usize {
+    text.chars().take(char_index).filter(|c| *c == '\n').count()
 }
 
-/// Applies an editor command to the open document, at the editor's current selection.
-fn apply_format(shell: &mut Shell, ctx: &egui::Context, edit_id: egui::Id, fmt: crate::markdown::Fmt) {
-    use egui::text::CCursor;
+/// The editor's selection in characters, (start, end). With no editor showing, the end of the text.
+pub(crate) fn selection(ctx: &egui::Context, shell: &Shell) -> (usize, usize) {
     let len = shell.documents.text.chars().count();
-    let state = egui::TextEdit::load_state(ctx, edit_id);
-    let (start, end) = match state.as_ref().and_then(|s| s.cursor.char_range()) {
+    let range = shell.documents.edit_id.and_then(|id| egui::TextEdit::load_state(ctx, id)).and_then(|st| st.cursor.char_range());
+    match range {
         Some(range) => {
             let (a, b) = (usize::from(range.primary.index), usize::from(range.secondary.index));
             (a.min(b), a.max(b))
         }
         None => (len, len),
-    };
-    let (text, a, b) = crate::markdown::format(&shell.documents.text, start, end, fmt);
-    shell.documents.text = text;
+    }
+}
+
+/// Applies a Format group command to the open document at the editor's selection, and keeps the
+/// selection over the change.
+pub(crate) fn apply(shell: &mut Shell, ctx: &egui::Context, edit: impl FnOnce(&str, usize, usize) -> crate::markdown::Edit) {
+    use egui::text::CCursor;
+    let Some(id) = shell.documents.edit_id else { return };
+    let (start, end) = selection(ctx, shell);
+    let result = edit(&shell.documents.text, start, end);
+    shell.documents.text = result.text;
     shell.documents.dirty_since.get_or_insert(shell.clock_ms);
-    let mut st = state.unwrap_or_default();
-    st.cursor.set_char_range(Some(egui::text::CCursorRange::two(CCursor::new(a), CCursor::new(b))));
-    st.store(ctx, edit_id);
+    let mut st = egui::TextEdit::load_state(ctx, id).unwrap_or_default();
+    st.cursor.set_char_range(Some(egui::text::CCursorRange::two(CCursor::new(result.start), CCursor::new(result.end))));
+    st.store(ctx, id);
 }
