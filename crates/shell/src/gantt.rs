@@ -27,7 +27,7 @@ const COLS: [(&str, &str, f32); 6] = [
 ];
 
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, pi: usize) {
-    let t = Tokens::get(ui.ctx());
+    let t = crate::theme::tokens(ui.ctx());
     let filter = shell.filter;
     let today = shell.today;
     let Some(p) = shell.projects.get_mut(pi) else { return };

@@ -474,3 +474,21 @@ fn the_view_menu_opens_tabs_once() {
         (0..shell.layout.leaf_count()).filter_map(|i| shell.layout.leaf(i)).flat_map(|l| l.tabs.iter()).filter(|t| **t == Tab::Documents).count();
     assert_eq!(docs, 1, "a tab that is open is focused, not added again");
 }
+
+#[test]
+fn revucraft_themes_set_the_chrome_and_the_accent() {
+    use crate::theme::{Accent, tokens_for};
+    let light = tokens_for(false, Accent::default());
+    let dark = tokens_for(true, Accent::Blue);
+    assert!(!light.dark && dark.dark, "the light and dark themes are told apart");
+    assert_ne!(light.ribbon, dark.ribbon, "the chrome changes with the theme");
+    assert_eq!(dark.accent, egui::Color32::from_rgb(0x4B, 0x8B, 0xF5), "the blue accent is RevuCraft's dark blue");
+    assert_eq!(Accent::default(), Accent::Amber, "amber is the default accent");
+}
+
+#[test]
+fn renders_the_revucraft_dark_theme() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    render(&mut shell, "themes-dark", egui::vec2(1280.0, 800.0), true);
+}

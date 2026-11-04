@@ -2,10 +2,10 @@
 //! project with whatever has been filled in. The answers become the project's information
 //! (editable later in the Inspector's Project Information).
 
+use gridcraft_ui_egui::theme::Tokens;
 use std::path::PathBuf;
 
 use egui::{RichText, Ui};
-use gridcraft_ui_egui::theme::Tokens;
 use plancraft_project::Method;
 use plancraft_project_sync::ProjectFolder;
 use serde_json::json;
@@ -42,7 +42,7 @@ impl Wizard {
 }
 
 pub(crate) fn show(shell: &mut Shell, ctx: &egui::Context) {
-    let t = Tokens::get(ctx);
+    let t = crate::theme::tokens(ctx);
     let mut open = true;
     let mut action: Option<&str> = None;
     egui::Window::new("New Project")
@@ -136,7 +136,7 @@ pub(crate) fn show(shell: &mut Shell, ctx: &egui::Context) {
 fn text(ui: &mut Ui, label: &str, value: &mut String, multiline: bool) {
     let l = ui.label(RichText::new(label).size(12.5));
     let e = if multiline { egui::TextEdit::multiline(value).desired_rows(3) } else { egui::TextEdit::singleline(value) };
-    let bg = Tokens::get(ui.ctx()).input_bg;
+    let bg = crate::theme::tokens(ui.ctx()).input_bg;
     ui.add(e.desired_width(f32::INFINITY).background_color(bg)).labelled_by(l.id);
 }
 

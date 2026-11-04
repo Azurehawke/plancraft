@@ -41,7 +41,7 @@ fn field(
     let id = ui.scope_id().with(("pc_insp", key));
     let mut text: String = ui.ctx().data_mut(|d| d.get_temp::<String>(id)).unwrap_or_else(|| current.to_string());
     let edit = if multiline { egui::TextEdit::multiline(&mut text).desired_rows(4) } else { egui::TextEdit::singleline(&mut text) };
-    let bg = gridcraft_ui_egui::theme::Tokens::get(ui.ctx()).input_bg;
+    let bg = crate::theme::tokens(ui.ctx()).input_bg;
     let resp = ui.add(edit.desired_width(f32::INFINITY).background_color(bg)).labelled_by(label_resp.id);
     if resp.has_focus() {
         ui.ctx().data_mut(|d| d.insert_temp(id, text.clone()));
