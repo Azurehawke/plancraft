@@ -433,3 +433,21 @@ fn renders_the_markdown_preview_and_editor_toolbar() {
     shell.documents.preview = true;
     render(&mut shell, "markdown-preview", egui::vec2(1500.0, 760.0), false);
 }
+
+#[test]
+fn renders_the_live_preview_in_the_editor() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    let project = shell.projects[0].dir().to_path_buf();
+    crate::documents::write(
+        &project,
+        &crate::documents::create(&project, "Live").unwrap(),
+        "# Live preview\n\nThe **network install** covers *two* floors with `Cat6` drops and ==marked== ~~old~~ text.\n\n- Survey the rooms\n- [ ] Map the drops\n\n> Ask the owner first.\n",
+    )
+    .unwrap();
+    shell.set_focused_tab(Tab::Documents);
+    shell.open_document("Live.md");
+    shell.documents.preview = false;
+    render(&mut shell, "live-preview", egui::vec2(1500.0, 760.0), false);
+    assert!(shell.documents.edit_id.is_some(), "the editor registers itself for the Format group");
+}

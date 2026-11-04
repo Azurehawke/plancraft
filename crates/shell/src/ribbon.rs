@@ -23,6 +23,8 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                     sep(ui, t);
                     if shell.focused_tab() == Tab::Documents {
                         document_group(shell, ui, t, pi);
+                        sep(ui, t);
+                        format_group(shell, ui, t);
                         return;
                     }
                     task_group(shell, ui, t, pi);
@@ -103,6 +105,82 @@ fn document_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
         if big_button(ui, Icon::Table, label, tip, false).clicked() {
             shell.documents.preview = !preview;
         }
+    });
+}
+
+/// One Markdown command button in the Format group: it acts on the open document's selection.
+fn fmt_button(shell: &mut Shell, ui: &mut Ui, label: &str, tip: &str, f: fn(&str, usize, usize) -> crate::markdown::Edit) {
+    if ui.add(egui::Button::new(RichText::new(label).size(12.0)).min_size(egui::vec2(34.0, 20.0))).on_hover_text(tip).clicked() {
+        crate::documents::apply(shell, ui.ctx(), f);
+    }
+}
+
+/// The Format group while a document is open: the Markdown commands on the editor's selection,
+/// after Obsidian's editing toolbar. Off in the reading view.
+fn format_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    use crate::markdown::{self as md, BOLD, CODE, HIGHLIGHT, ITALIC, ListKind, STRIKE};
+    let open = shell.documents.selected.is_some() && !shell.documents.preview;
+    group(ui, t, "Format", |ui| {
+        ui.add_enabled_ui(open, |ui| {
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "B", "Bold", |t, s, e| md::wrap(t, s, e, BOLD));
+                    fmt_button(shell, ui, "I", "Italic", |t, s, e| md::wrap(t, s, e, ITALIC));
+                    fmt_button(shell, ui, "S", "Strikethrough", |t, s, e| md::wrap(t, s, e, STRIKE));
+                });
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "`", "Code", |t, s, e| md::wrap(t, s, e, CODE));
+                    fmt_button(shell, ui, "==", "Highlight", |t, s, e| md::wrap(t, s, e, HIGHLIGHT));
+                    fmt_button(shell, ui, "Clear", "Clear formatting", md::clear);
+                });
+            });
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "H1", "Heading 1", |t, s, e| md::set_heading(t, s, e, 1));
+                    fmt_button(shell, ui, "H2", "Heading 2", |t, s, e| md::set_heading(t, s, e, 2));
+                    fmt_button(shell, ui, "H3", "Heading 3", |t, s, e| md::set_heading(t, s, e, 3));
+                });
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "•", "Bulleted list", |t, s, e| md::toggle_list(t, s, e, ListKind::Bullet));
+                    fmt_button(shell, ui, "1.", "Numbered list", |t, s, e| md::toggle_list(t, s, e, ListKind::Number));
+                    fmt_button(shell, ui, "[ ]", "Checklist", |t, s, e| md::toggle_list(t, s, e, ListKind::Task));
+                });
+            });
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "Link", "Link (the address is selected to type over)", |t, s, e| md::link(t, s, e, false));
+                    fmt_button(shell, ui, "[[ ]]", "Link to another document", |t, s, e| md::link(t, s, e, true));
+                    fmt_button(shell, ui, "\u{201C}", "Quote", md::quote);
+                });
+                ui.horizontal(|ui| {
+                    fmt_button(shell, ui, "```", "Code block", md::code_block);
+                    fmt_button(shell, ui, "—", "Horizontal rule", md::horizontal_rule);
+                });
+            });
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(egui::Button::new(RichText::new("Copy format").size(12.0)))
+                        .on_hover_text("Copy the formatting at the selection")
+                        .clicked()
+                    {
+                        let (s, e) = crate::documents::selection(ui.ctx(), shell);
+                        shell.documents.painter = Some(md::marks_around(&shell.documents.text, s, e));
+                    }
+                    let paste = shell.documents.painter.clone();
+                    ui.add_enabled_ui(paste.is_some(), |ui| {
+                        if ui
+                            .add(egui::Button::new(RichText::new("Paste format").size(12.0)))
+                            .on_hover_text("Apply the copied formatting to the selection")
+                            .clicked()
+                            && let Some(marks) = paste
+                        {
+                            crate::documents::apply(shell, ui.ctx(), |t, s, e| md::apply_marks(t, s, e, &marks));
+                        }
+                    });
+                });
+            });
+        });
     });
 }
 
