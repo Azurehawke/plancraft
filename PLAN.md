@@ -1,6 +1,6 @@
 # PlanCraft — plan
 
-> **Status:** Phase 3b (the RevuCraft link, PlanCraft side), v0.6.1 (with the Start menu shortcut fix), built on `phase-3b-revucraft-link`: the link in a Settings panel, linked drawings with unlink, punch items as tasks with their space as location, read-only punch fields. Calendar and Board views (v0.5.0), Phase 3 (v0.4.0), Phases 0–2 (v0.1.0–v0.3.0).
+> **Status:** Phase 3b (the RevuCraft link, PlanCraft side), v0.7.0: RevuCraft-style chrome (menu bar, Plan/Read mode bar, status bar, right-hand rail), RevuCraft themes with a choice of accent, and tool icon colours. Before it: v0.6.1 (the Start menu shortcut fix, the RevuCraft link in a Settings panel, linked drawings with unlink, punch items as tasks). Calendar and Board views (v0.5.0), Phase 3 (v0.4.0), Phases 0–2 (v0.1.0–v0.3.0).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
 > **Last updated:** 2026-11-01
