@@ -511,3 +511,22 @@ fn renders_neutral_tool_icons() {
     shell.prefs.icon_color = crate::theme::IconColor::Neutral;
     render(&mut shell, "tool-icons-neutral", egui::vec2(1280.0, 800.0), true);
 }
+
+#[test]
+fn ribbon_tips_name_only_keys_the_gantt_binds() {
+    let ribbon = include_str!("ribbon.rs");
+    let gantt = include_str!("gantt.rs");
+    for (tip, key) in
+        [("(Insert)", "Key::Insert"), ("(Delete)", "Key::Delete"), ("(Alt+Shift+→)", "Key::ArrowRight"), ("(Alt+Shift+←)", "Key::ArrowLeft")]
+    {
+        assert!(ribbon.contains(tip), "a ribbon tip names {tip}");
+        assert!(gantt.contains(key), "the Gantt binds {key} for {tip}");
+    }
+}
+
+#[test]
+fn renders_the_revucraft_light_theme_and_strip() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    render(&mut shell, "themes-light", egui::vec2(1280.0, 800.0), false);
+}
