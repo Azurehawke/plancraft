@@ -244,5 +244,5 @@ fn add_card(shell: &mut Shell, pi: usize, status: &str) {
     if let Some(p) = shell.projects.get_mut(pi) {
         p.select_only(TaskId(id));
     }
-    shell.right_open = true;
+    shell.open_inspector();
 }

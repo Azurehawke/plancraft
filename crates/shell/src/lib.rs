@@ -154,6 +154,8 @@ pub enum Tab {
     Spreadsheet,
     /// The Markdown documents of the current project: file list and editor.
     Documents,
+    /// The Properties: the selected task's details, or the project's information.
+    Inspector,
 }
 
 /// A pinned task (the Bookmarks panel).
@@ -171,7 +173,6 @@ pub struct ShellPrefs {
     pub recent: Vec<PathBuf>,
     pub bookmarks: Vec<Bookmark>,
     pub left_open: bool,
-    pub right_open: bool,
     pub panel: Option<Panel>,
     /// Link this device's projects to RevuCraft's punch lists (off by default).
     pub revucraft_link: bool,
@@ -196,7 +197,6 @@ pub struct Shell {
     pub clock_ms: f64,
     pub panel: Panel,
     pub left_open: bool,
-    pub right_open: bool,
     pub filter: Filter,
     pub search: String,
     pub prefs: ShellPrefs,
@@ -217,7 +217,7 @@ impl Shell {
             .as_ref()
             .and_then(|d| std::fs::read(d.join("shell.json")).ok())
             .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or(ShellPrefs { left_open: true, right_open: true, ..ShellPrefs::default() });
+            .unwrap_or(ShellPrefs { left_open: true, ..ShellPrefs::default() });
         let layout = prefs.layout.clone().filter(|l| l.leaf_count() > 0).unwrap_or_default();
         Shell {
             projects: Vec::new(),
@@ -229,7 +229,6 @@ impl Shell {
             clock_ms: 0.0,
             panel: prefs.panel.unwrap_or(Panel::Explorer),
             left_open: prefs.left_open,
-            right_open: prefs.right_open,
             filter: Filter::All,
             search: String::new(),
             prefs,
@@ -302,6 +301,21 @@ impl Shell {
         self.save_prefs();
     }
 
+    /// Shows the Properties tab: focuses one that is open, or adds one to the focused pane.
+    pub fn open_inspector(&mut self) {
+        let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Inspector)));
+        match found {
+            Some(i) => self.focus = i,
+            None => {
+                if let Some(leaf) = self.layout.leaf_mut(self.focus) {
+                    leaf.tabs.push(Tab::Inspector);
+                    leaf.active = leaf.tabs.len() - 1;
+                }
+            }
+        }
+        self.save_prefs();
+    }
+
     /// Shows the spreadsheet tab (adding it if needed).
     pub fn show_spreadsheet_tab(&mut self) {
         let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
@@ -351,7 +365,6 @@ impl Shell {
     pub(crate) fn save_prefs(&mut self) {
         self.prefs.layout = Some(self.layout.clone());
         self.prefs.left_open = self.left_open;
-        self.prefs.right_open = self.right_open;
         self.prefs.panel = Some(self.panel);
         let Some(dir) = &self.settings_dir else { return };
         let _ = std::fs::create_dir_all(dir);
@@ -473,9 +486,6 @@ impl Shell {
         }
         self.message_bar(ui, &t);
         sidebar::show(self, ui, &t);
-        if !on_sheet && self.right_open {
-            inspector::show(self, ui, &t);
-        }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(if on_sheet { t.window } else { t.grid_bg })).show(ui, |ui| {
             panes::show(self, ui, &t, spreadsheet);
         });
@@ -512,12 +522,12 @@ impl Shell {
                         self.start_wizard();
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Info, self.right_open)
-                            .on_hover_text("Show or hide the Inspector")
+                        let on = self.focused_tab() == Tab::Inspector;
+                        if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Info, on)
+                            .on_hover_text("Properties: the selected task, or the project's information")
                             .clicked()
                         {
-                            self.right_open = !self.right_open;
-                            self.save_prefs();
+                            self.open_inspector();
                         }
                     });
                 });

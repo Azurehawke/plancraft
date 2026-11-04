@@ -261,5 +261,5 @@ fn add_on(shell: &mut Shell, pi: usize, date: &str) {
     if let Some(p) = shell.projects.get_mut(pi) {
         p.select_only(TaskId(id));
     }
-    shell.right_open = true;
+    shell.open_inspector();
 }
