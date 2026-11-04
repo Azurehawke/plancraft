@@ -537,6 +537,56 @@ impl Shell {
                             }
                         });
                     });
+                    ui.menu_button("Edit", |ui| {
+                        let pi = self.active_project();
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("Indent")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::on_current(self, pi, "task.indent");
+                            }
+                            ui.close();
+                        }
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("Outdent")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::on_current(self, pi, "task.outdent");
+                            }
+                            ui.close();
+                        }
+                        ui.separator();
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("Delete")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::delete_selected(self, pi);
+                            }
+                            ui.close();
+                        }
+                    });
+                    ui.menu_button("Task", |ui| {
+                        let pi = self.active_project();
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("New task")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::add_task(self, pi, false);
+                            }
+                            ui.close();
+                        }
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("New milestone")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::add_task(self, pi, true);
+                            }
+                            ui.close();
+                        }
+                        ui.separator();
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("Link tasks")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::link_selected(self, pi, false);
+                            }
+                            ui.close();
+                        }
+                        if ui.add_enabled(pi.is_some(), egui::Button::new("Unlink tasks")).clicked() {
+                            if let Some(pi) = pi {
+                                ribbon::link_selected(self, pi, true);
+                            }
+                            ui.close();
+                        }
+                    });
                     ui.menu_button("View", |ui| {
                         let sidebar = if self.left_open { "Hide sidebar" } else { "Show sidebar" };
                         if ui.button(sidebar).clicked() {
@@ -584,6 +634,12 @@ impl Shell {
                             }
                         });
                     });
+                    ui.menu_button("Help", |ui| {
+                        if ui.button("About PlanCraft").clicked() {
+                            self.message = Some(format!("PlanCraft {}: a project planner built on GridCraft.", env!("CARGO_PKG_VERSION")));
+                            ui.close();
+                        }
+                    });
                 });
             },
         );
@@ -609,6 +665,13 @@ impl Shell {
                         self.left_open = true;
                         self.save_prefs();
                     }
+                    let unsaved = self.documents.dirty_since.is_some();
+                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Save, false)
+                        .on_hover_text(if unsaved { "Save the open document" } else { "Everything is saved" })
+                        .clicked()
+                    {
+                        self.flush_document();
+                    }
                 });
             },
         );
@@ -619,16 +682,28 @@ impl Shell {
         let title = self.active_project().and_then(|i| self.projects.get(i)).map(|p| p.title()).unwrap_or_else(|| "No project open".to_string());
         let read = self.read_mode;
         let device = self.device.clone();
+        let facts = self.active_project().and_then(|i| self.projects.get(i)).map(|p| (p.schedule.tasks.len(), p.schedule.finish.to_string()));
+        let unsaved = self.documents.dirty_since.is_some();
         egui::Panel::bottom("pc_status").exact_size(26.0).frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin::symmetric(10, 2))).show(
             ui,
             |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.label(RichText::new(title).size(12.0).color(t.text_dim));
+                    if let Some((tasks, finish)) = facts {
+                        ui.add_space(12.0);
+                        ui.label(RichText::new(format!("{tasks} tasks")).size(12.0).color(t.text_dim));
+                        ui.add_space(12.0);
+                        ui.label(RichText::new(format!("Finish {finish}")).size(12.0).color(t.text_dim));
+                    }
                     if read {
+                        ui.add_space(12.0);
                         ui.label(RichText::new("Read mode").size(12.0).color(t.text_dim));
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.label(RichText::new(device).size(12.0).color(t.text_dim));
+                        ui.add_space(12.0);
+                        let state = if unsaved { "Unsaved" } else { "Saved" };
+                        ui.label(RichText::new(state).size(12.0).color(t.text_dim));
                     });
                 });
             },

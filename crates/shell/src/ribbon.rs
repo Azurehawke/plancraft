@@ -350,7 +350,7 @@ pub(crate) fn delete_selected(shell: &mut Shell, pi: usize) {
     }
 }
 
-fn link_selected(shell: &mut Shell, pi: usize, unlink: bool) {
+pub(crate) fn link_selected(shell: &mut Shell, pi: usize, unlink: bool) {
     let ids: Vec<String> = shell.projects.get(pi).map(|p| p.selected.iter().map(|s| s.0.clone()).collect()).unwrap_or_default();
     for pair in ids.windows(2) {
         let (Some(a), Some(b)) = (pair.first(), pair.get(1)) else { continue };
