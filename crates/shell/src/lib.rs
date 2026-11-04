@@ -197,6 +197,8 @@ pub struct Shell {
     pub clock_ms: f64,
     pub panel: Panel,
     pub left_open: bool,
+    /// Read mode: the ribbon steps away, so the window is for reading (not kept between runs).
+    pub read_mode: bool,
     pub filter: Filter,
     pub search: String,
     pub prefs: ShellPrefs,
@@ -229,6 +231,7 @@ impl Shell {
             clock_ms: 0.0,
             panel: prefs.panel.unwrap_or(Panel::Explorer),
             left_open: prefs.left_open,
+            read_mode: false,
             filter: Filter::All,
             search: String::new(),
             prefs,
@@ -303,12 +306,17 @@ impl Shell {
 
     /// Shows the Properties tab: focuses one that is open, or adds one to the focused pane.
     pub fn open_inspector(&mut self) {
-        let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Inspector)));
+        self.open_tab(Tab::Inspector);
+    }
+
+    /// Shows a tab: focuses the pane that has it, or adds it to the focused pane.
+    pub fn open_tab(&mut self, tab: Tab) {
+        let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&tab)));
         match found {
             Some(i) => self.focus = i,
             None => {
                 if let Some(leaf) = self.layout.leaf_mut(self.focus) {
-                    leaf.tabs.push(Tab::Inspector);
+                    leaf.tabs.push(tab);
                     leaf.active = leaf.tabs.len() - 1;
                 }
             }
@@ -479,12 +487,17 @@ impl Shell {
     /// Draws the shell. `spreadsheet` draws the spreadsheet tab's contents into the given Ui.
     pub fn show(&mut self, ui: &mut Ui, spreadsheet: &mut dyn FnMut(&mut Ui)) {
         let t = Tokens::get(ui.ctx());
+        self.menu_bar(ui, &t);
         self.tab_bar(ui, &t);
+        if self.active_project().is_some() {
+            self.mode_bar(ui, &t);
+        }
         let on_sheet = self.focused_tab() == Tab::Spreadsheet;
-        if !on_sheet {
+        if !on_sheet && !self.read_mode {
             ribbon::show(self, ui, &t);
         }
         self.message_bar(ui, &t);
+        self.status_bar(ui, &t);
         sidebar::show(self, ui, &t);
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(if on_sheet { t.window } else { t.grid_bg })).show(ui, |ui| {
             panes::show(self, ui, &t, spreadsheet);
@@ -492,6 +505,108 @@ impl Shell {
         if self.wizard.is_some() {
             wizard::show(self, ui.ctx());
         }
+    }
+
+    /// The menu bar across the top: File and View, each running the same actions as the ribbon.
+    fn menu_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        let has_project = self.active_project().is_some();
+        egui::Panel::top("pc_menu").exact_size(30.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(8, 2))).show(
+            ui,
+            |ui| {
+                ui.horizontal_centered(|ui| {
+                    ui.menu_button("File", |ui| {
+                        if ui.button("New project…").clicked() {
+                            self.start_wizard();
+                            ui.close();
+                        }
+                        if ui.button("Open project…").clicked() {
+                            self.request(Request::OpenProject);
+                            ui.close();
+                        }
+                        ui.add_enabled_ui(has_project, |ui| {
+                            if ui.button("Close project").clicked() {
+                                self.close_project();
+                                ui.close();
+                            }
+                        });
+                    });
+                    ui.menu_button("View", |ui| {
+                        let sidebar = if self.left_open { "Hide sidebar" } else { "Show sidebar" };
+                        if ui.button(sidebar).clicked() {
+                            self.left_open = !self.left_open;
+                            self.save_prefs();
+                            ui.close();
+                        }
+                        let read = if self.read_mode { "Leave read mode" } else { "Read mode" };
+                        if ui.add_enabled(has_project, egui::Button::new(read)).clicked() {
+                            self.read_mode = !self.read_mode;
+                            ui.close();
+                        }
+                        ui.separator();
+                        ui.add_enabled_ui(has_project, |ui| {
+                            if ui.button("Properties").clicked() {
+                                self.open_inspector();
+                                ui.close();
+                            }
+                            if ui.button("Documents").clicked() {
+                                self.open_tab(Tab::Documents);
+                                ui.close();
+                            }
+                            if ui.button("Spreadsheet").clicked() {
+                                self.show_spreadsheet_tab();
+                                ui.close();
+                            }
+                        });
+                    });
+                });
+            },
+        );
+    }
+
+    /// The mode bar under the tabs: Plan (edit, with the ribbon) or Read (the ribbon steps away),
+    /// and Search, which opens the sidebar's Search panel.
+    fn mode_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        egui::Panel::top("pc_mode").exact_size(40.0).frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin::symmetric(8, 4))).show(
+            ui,
+            |ui| {
+                ui.horizontal_centered(|ui| {
+                    if ui.selectable_label(!self.read_mode, "Plan").on_hover_text("Edit the plan, with the ribbon").clicked() {
+                        self.read_mode = false;
+                    }
+                    if ui.selectable_label(self.read_mode, "Read").on_hover_text("Read the plan with the ribbon hidden").clicked() {
+                        self.read_mode = true;
+                    }
+                    ui.add_space(8.0);
+                    let searching = self.left_open && self.panel == Panel::Search;
+                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Search, searching).on_hover_text("Search the project").clicked() {
+                        self.panel = Panel::Search;
+                        self.left_open = true;
+                        self.save_prefs();
+                    }
+                });
+            },
+        );
+    }
+
+    /// The status bar along the bottom: the project's title, read mode, and the device.
+    fn status_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        let title = self.active_project().and_then(|i| self.projects.get(i)).map(|p| p.title()).unwrap_or_else(|| "No project open".to_string());
+        let read = self.read_mode;
+        let device = self.device.clone();
+        egui::Panel::bottom("pc_status").exact_size(26.0).frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin::symmetric(10, 2))).show(
+            ui,
+            |ui| {
+                ui.horizontal_centered(|ui| {
+                    ui.label(RichText::new(title).size(12.0).color(t.text_dim));
+                    if read {
+                        ui.label(RichText::new("Read mode").size(12.0).color(t.text_dim));
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label(RichText::new(device).size(12.0).color(t.text_dim));
+                    });
+                });
+            },
+        );
     }
 
     fn tab_bar(&mut self, ui: &mut Ui, t: &Tokens) {

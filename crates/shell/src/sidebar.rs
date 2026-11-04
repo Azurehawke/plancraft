@@ -22,7 +22,7 @@ fn icon(p: Panel) -> Icon {
 }
 
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
-    egui::Panel::left("pc_rail").exact_size(40.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(4, 8))).show(
+    egui::Panel::right("pc_rail").exact_size(48.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(4, 8))).show(
         ui,
         |ui| {
             ui.vertical_centered(|ui| {
@@ -57,7 +57,7 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
     if !shell.left_open {
         return;
     }
-    egui::Panel::left("pc_sidebar")
+    egui::Panel::right("pc_sidebar")
         .default_size(250.0)
         .size_range(180.0..=480.0)
         .resizable(true)

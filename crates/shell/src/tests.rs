@@ -451,3 +451,26 @@ fn renders_the_live_preview_in_the_editor() {
     render(&mut shell, "live-preview", egui::vec2(1500.0, 760.0), false);
     assert!(shell.documents.edit_id.is_some(), "the editor registers itself for the Format group");
 }
+
+#[test]
+fn the_menu_and_mode_bars_render_and_read_mode_steps_the_ribbon_away() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    render(&mut shell, "chrome-plan", egui::vec2(1280.0, 800.0), false);
+    shell.read_mode = true;
+    render(&mut shell, "chrome-read", egui::vec2(1280.0, 800.0), false);
+    assert!(shell.read_mode, "read mode stays on until the person leaves it");
+    shell.read_mode = false;
+}
+
+#[test]
+fn the_view_menu_opens_tabs_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.open_tab(Tab::Documents);
+    assert_eq!(shell.focused_tab(), Tab::Documents);
+    shell.open_tab(Tab::Documents);
+    let docs =
+        (0..shell.layout.leaf_count()).filter_map(|i| shell.layout.leaf(i)).flat_map(|l| l.tabs.iter()).filter(|t| **t == Tab::Documents).count();
+    assert_eq!(docs, 1, "a tab that is open is focused, not added again");
+}
