@@ -38,7 +38,7 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                         ui.painter(),
                         egui::Rect::from_center_size(rect.center(), egui::vec2(18.0, 18.0)),
                         icon(p),
-                        if on { t.text } else { t.text_dim },
+                        crate::theme::tool_icon(ui.ctx()),
                     );
                     if resp.on_hover_text(p.label()).clicked() {
                         if on {

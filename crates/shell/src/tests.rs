@@ -492,3 +492,22 @@ fn renders_the_revucraft_dark_theme() {
     let mut shell = sample(dir.path());
     render(&mut shell, "themes-dark", egui::vec2(1280.0, 800.0), true);
 }
+
+#[test]
+fn tool_icons_follow_the_chosen_colour() {
+    use crate::theme::{Accent, IconColor, tool_icon_for};
+    let rgb = |v: u32| egui::Color32::from_rgb((v >> 16) as u8, (v >> 8) as u8, v as u8);
+    assert_eq!(tool_icon_for(true, Accent::Amber, IconColor::Accent), rgb(0xF2A33A), "accent: the amber in the dark theme");
+    assert_eq!(tool_icon_for(false, Accent::Amber, IconColor::Accent), rgb(0x8F5300), "accent: the darker amber text in the light theme");
+    assert_eq!(tool_icon_for(true, Accent::Amber, IconColor::Own(Accent::Blue)), rgb(0x4B8BF5), "own colour: blue whatever the accent");
+    assert_eq!(tool_icon_for(false, Accent::Blue, IconColor::Neutral), rgb(0x44444B), "neutral: the grey in the light theme");
+    assert_eq!(IconColor::all().len(), 8, "accent, neutral and the six colours");
+}
+
+#[test]
+fn renders_neutral_tool_icons() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.prefs.icon_color = crate::theme::IconColor::Neutral;
+    render(&mut shell, "tool-icons-neutral", egui::vec2(1280.0, 800.0), true);
+}
