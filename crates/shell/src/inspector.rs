@@ -1,5 +1,5 @@
-//! The right sidebar: the selected task's properties, or the project's information (the Project
-//! Information pane) when no task is selected. Text fields apply when they lose focus or on Enter.
+//! The Properties tab: the selected task's properties, or the project's information when no task
+//! is selected. Text fields apply when they lose focus or on Enter.
 
 use egui::{RichText, Ui};
 use gridcraft_ui_egui::theme::Tokens;
@@ -8,20 +8,20 @@ use serde_json::json;
 
 use crate::{Shell, section};
 
+/// The Properties tab: the selected task's details, or the project's information. It fills the
+/// pane it is in.
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
-    egui::Panel::right("pc_inspector")
-        .default_size(290.0)
-        .size_range(220.0..=480.0)
-        .resizable(true)
-        .frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(12, 8)))
-        .show(ui, |ui| {
-            let Some(pi) = shell.active_project() else { return };
-            let task = shell.projects.get(pi).and_then(|p| p.current().and_then(|id| p.project.task(id)).cloned());
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| match task {
-                Some(task) => task_props(shell, ui, t, pi, &task),
-                None => project_info(shell, ui, t, pi),
-            });
+    egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(12, 8)).show(ui, |ui| {
+        let Some(pi) = shell.active_project() else {
+            ui.label(RichText::new("No project open.").color(t.text_dim));
+            return;
+        };
+        let task = shell.projects.get(pi).and_then(|p| p.current().and_then(|id| p.project.task(id)).cloned());
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| match task {
+            Some(task) => task_props(shell, ui, t, pi, &task),
+            None => project_info(shell, ui, t, pi),
         });
+    });
 }
 
 /// A text field that runs `cmd` with the new value when edited and committed. Keeps its draft in

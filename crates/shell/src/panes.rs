@@ -182,6 +182,7 @@ fn tab_title(tab: &Tab) -> String {
     match tab {
         Tab::Spreadsheet => "Spreadsheet".to_string(),
         Tab::Documents => "Documents".to_string(),
+        Tab::Inspector => "Properties".to_string(),
         Tab::View(v) => v.label().to_string(),
     }
 }
@@ -431,6 +432,11 @@ fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Sl
                     leaf.active = leaf.tabs.len() - 1;
                     ui.close();
                 }
+                if ui.button("Properties").clicked() {
+                    leaf.tabs.push(Tab::Inspector);
+                    leaf.active = leaf.tabs.len() - 1;
+                    ui.close();
+                }
             });
         });
     });
@@ -441,6 +447,7 @@ fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Sl
     }
     match leaf.tab() {
         Tab::Spreadsheet => spreadsheet(ui),
+        Tab::Inspector => crate::inspector::show(shell, ui, t),
         Tab::Documents => {
             if shell.active_project().is_some() {
                 crate::documents::show(shell, ui, t);

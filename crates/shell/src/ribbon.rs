@@ -67,11 +67,11 @@ fn file_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
             shell.request(Request::OpenProject);
         }
         ui.vertical(|ui| {
-            if small_button(ui, Icon::Info, "Information", "Project information in the Inspector", false).clicked() {
+            if small_button(ui, Icon::Info, "Information", "Open the Properties tab: the project's information", false).clicked() {
                 if let Some(p) = shell.active_project().and_then(|i| shell.projects.get_mut(i)) {
                     p.selected.clear();
                 }
-                shell.right_open = true;
+                shell.open_inspector();
             }
             if small_button(ui, Icon::Sheet, "Spreadsheet", "Open the spreadsheet tab", false).clicked() {
                 shell.request(Request::OpenSpreadsheet(None));
@@ -187,7 +187,7 @@ fn view_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize) {
     group(ui, t, "View", |ui| {
         let current = match shell.focused_tab() {
             Tab::View(v) => v,
-            Tab::Spreadsheet | Tab::Documents => View::Gantt,
+            Tab::Spreadsheet | Tab::Documents | Tab::Inspector => View::Gantt,
         };
         ui.vertical(|ui| {
             let mut chosen = current;

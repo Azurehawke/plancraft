@@ -351,6 +351,17 @@ fn closing_a_project_returns_to_the_launch_page() {
 }
 
 #[test]
+fn properties_open_in_a_tab_and_are_not_duplicated() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.open_inspector();
+    shell.open_inspector();
+    let tabs = |s: &Shell| (0..s.layout.leaf_count()).flat_map(|i| s.layout.leaf(i).unwrap().tabs.clone()).collect::<Vec<_>>();
+    assert_eq!(tabs(&shell).iter().filter(|t| **t == Tab::Inspector).count(), 1, "one Properties tab");
+    render(&mut shell, "properties-tab", egui::vec2(1500.0, 760.0), false);
+}
+
+#[test]
 fn renders_a_floating_pane_over_the_layout() {
     use crate::panes::{Float, Leaf};
     let dir = tempfile::tempdir().unwrap();
