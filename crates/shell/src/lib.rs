@@ -31,6 +31,7 @@ mod project;
 mod ribbon;
 mod sidebar;
 mod theme;
+mod toolbar;
 mod wizard;
 
 use gridcraft_ui_egui::theme::Tokens;
@@ -181,6 +182,8 @@ pub struct ShellPrefs {
     pub layout: Option<panes::Pane>,
     /// RevuCraft's accent colour for this device (amber unless changed).
     pub accent: theme::Accent,
+    /// What the tool icons are drawn in (RevuCraft's choice; the accent unless changed).
+    pub icon_color: theme::IconColor,
 }
 
 /// The whole shell.
@@ -495,7 +498,7 @@ impl Shell {
         if self.active_project().is_some() {
             self.mode_bar(ui, &t);
         }
-        theme::remember(ui.ctx(), self.prefs.accent);
+        theme::remember(ui.ctx(), self.prefs.accent, self.prefs.icon_color);
         let on_sheet = self.focused_tab() == Tab::Spreadsheet;
         if !on_sheet && !self.read_mode {
             ribbon::show(self, ui, &t);
@@ -566,6 +569,15 @@ impl Shell {
                             for accent in theme::Accent::ALL {
                                 if ui.selectable_label(self.prefs.accent == accent, accent.label()).clicked() {
                                     self.prefs.accent = accent;
+                                    self.save_prefs();
+                                    ui.close();
+                                }
+                            }
+                        });
+                        ui.menu_button("Tool icons", |ui| {
+                            for choice in theme::IconColor::all() {
+                                if ui.selectable_label(self.prefs.icon_color == choice, choice.label()).clicked() {
+                                    self.prefs.icon_color = choice;
                                     self.save_prefs();
                                     ui.close();
                                 }
@@ -750,7 +762,7 @@ fn icon_button(ui: &mut Ui, t: &Tokens, icon: gridcraft_ui_egui::icons::Icon, on
         ui.painter(),
         egui::Rect::from_center_size(rect.center(), egui::vec2(16.0, 16.0)),
         icon,
-        if on { t.text } else { t.text_dim },
+        theme::tool_icon(ui.ctx()),
     );
     resp
 }

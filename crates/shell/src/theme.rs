@@ -71,6 +71,7 @@ struct Chrome {
     hover: Color32,
     pressed: Color32,
     field: Color32,
+    icon: Color32,
 }
 
 fn chrome(dark: bool) -> Chrome {
@@ -90,6 +91,7 @@ fn chrome(dark: bool) -> Chrome {
             hover: c(0x2B2F35),
             pressed: c(0x353A41),
             field: c(0x16181B),
+            icon: c(0xCDD1D8),
         }
     } else {
         Chrome {
@@ -106,6 +108,7 @@ fn chrome(dark: bool) -> Chrome {
             hover: c(0xF0F0F3),
             pressed: c(0xE4E4E9),
             field: c(0xFFFFFF),
+            icon: c(0x44444B),
         }
     }
 }
@@ -130,6 +133,7 @@ pub fn tokens_for(dark: bool, accent: Accent) -> Tokens {
         separator: c.divider,
         desk: c.pasteboard,
         grid_bg: c.panel,
+        cell_text: c.text,
         header_bg: c.card,
         menu_bg: c.card,
         input_bg: c.field,
@@ -149,9 +153,65 @@ fn accent_id() -> egui::Id {
     egui::Id::new("plancraft-accent")
 }
 
-/// Remember the accent for this context; the shell's tokens use it.
-pub fn remember(ctx: &egui::Context, accent: Accent) {
-    ctx.data_mut(|d| d.insert_temp(accent_id(), accent));
+/// What the tool icons are drawn in (RevuCraft's choice): the accent, a neutral grey, or the colour
+/// of one of the accents, whatever the accent is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum IconColor {
+    #[default]
+    Accent,
+    Neutral,
+    Own(Accent),
+}
+
+impl IconColor {
+    /// Every choice, for the menu: the accent, neutral, then each colour.
+    pub fn all() -> Vec<IconColor> {
+        let mut out = vec![IconColor::Accent, IconColor::Neutral];
+        out.extend(Accent::ALL.into_iter().map(IconColor::Own));
+        out
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Accent => "Accent colour",
+            Self::Neutral => "Neutral",
+            Self::Own(a) => a.label(),
+        }
+    }
+}
+
+/// The icon colour for a theme, accent and choice.
+pub fn tool_icon_for(dark: bool, accent: Accent, icons: IconColor) -> Color32 {
+    match icons {
+        IconColor::Neutral => chrome(dark).icon,
+        IconColor::Accent | IconColor::Own(_) => {
+            let pick = if let IconColor::Own(a) = icons { a } else { accent };
+            let (a, text, ..) = pick.colours(dark);
+            if dark { a } else { text }
+        }
+    }
+}
+
+#[allow(deprecated)] // a fixed key for this context's data, not a salt
+fn icon_id() -> egui::Id {
+    egui::Id::new("plancraft-tool-icons")
+}
+
+/// Remember the accent and the tool icon colour for this context; the shell's tokens use them.
+pub fn remember(ctx: &egui::Context, accent: Accent, icons: IconColor) {
+    ctx.data_mut(|d| {
+        d.insert_temp(accent_id(), accent);
+        d.insert_temp(icon_id(), icons);
+    });
+}
+
+/// The colour the tool icons are drawn in now (ribbon, rail and tab-bar icons).
+pub fn tool_icon(ctx: &egui::Context) -> Color32 {
+    let dark = ctx.global_style().visuals.dark_mode;
+    let accent = ctx.data(|d| d.get_temp::<Accent>(accent_id())).unwrap_or_default();
+    let icons = ctx.data(|d| d.get_temp::<IconColor>(icon_id())).unwrap_or_default();
+    tool_icon_for(dark, accent, icons)
 }
 
 /// The tokens to draw with now: the light or dark theme the context shows, with the remembered accent.

@@ -1,10 +1,10 @@
 //! The ribbon for a project tab: Task, Schedule, Resource, View and Project groups. Every button
 //! runs a project command (or a view change), so it does what the CLI and agents can do.
 
+use crate::toolbar::{big as big_button, small as small_button};
 use egui::{RichText, Ui};
 use gridcraft_ui_egui::icons::Icon;
 use gridcraft_ui_egui::theme::Tokens;
-use gridcraft_ui_egui::widgets::{big_button, small_button};
 use serde_json::json;
 
 use crate::{Request, Shell, Tab, View};
