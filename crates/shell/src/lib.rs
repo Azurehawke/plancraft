@@ -304,7 +304,8 @@ impl Shell {
         self.current = None;
         self.documents = documents::DocState::default();
         let keep_sheet = (0..self.layout.leaf_count()).any(|i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&Tab::Spreadsheet)));
-        self.layout = if keep_sheet { panes::Pane::Leaf(panes::Leaf { tabs: vec![Tab::Spreadsheet], active: 0 }) } else { panes::Pane::default() };
+        self.layout =
+            if keep_sheet { panes::Pane::Leaf(panes::Leaf { tabs: vec![Tab::Spreadsheet], active: 0, pinned: 0 }) } else { panes::Pane::default() };
         self.focus = 0;
         self.floating.clear();
         self.save_prefs();
@@ -839,7 +840,9 @@ mod tests;
 /// Returns (title clicked, × clicked).
 /// One tab in a pane's tab strip: its title, and a × to close it when `closable`.
 /// Returns the title's response (for clicks and menus) and whether the × was clicked.
-pub(crate) fn tab_button(ui: &mut Ui, t: &Tokens, title: &str, active: bool, closable: bool) -> (egui::Response, bool) {
+/// A tab in a pane's strip: its title and a × to close it. A pinned tab has no ×, but keeps the
+/// ×'s space (blank), so pinning doesn't shrink it.
+pub(crate) fn tab_button(ui: &mut Ui, t: &Tokens, title: &str, active: bool, pinned: bool) -> (egui::Response, bool) {
     let mut label = None;
     let mut closed = false;
     let fill = if active { t.tab_active } else { t.tab_bar };
@@ -849,9 +852,10 @@ pub(crate) fn tab_button(ui: &mut Ui, t: &Tokens, title: &str, active: bool, clo
             ui.horizontal(|ui| {
                 label =
                     Some(ui.add(egui::Label::new(RichText::new(title).color(if active { t.text } else { t.text_dim })).sense(egui::Sense::click())));
-                if closable
-                    && ui.add(egui::Button::new(RichText::new("×").color(t.text_dim)).frame(false).small()).on_hover_text("Close tab").clicked()
-                {
+                let close = egui::Button::new(RichText::new("×").color(t.text_dim)).frame(false).small();
+                if pinned {
+                    ui.add_visible(false, close);
+                } else if ui.add(close).on_hover_text("Close tab").clicked() {
                     closed = true;
                 }
             });

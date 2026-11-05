@@ -368,7 +368,7 @@ fn renders_a_floating_pane_over_the_layout() {
     let mut shell = sample(dir.path());
     shell.floating.push(Float {
         id: 1,
-        leaf: Leaf { tabs: vec![Tab::View(View::Kanban)], active: 0 },
+        leaf: Leaf { tabs: vec![Tab::View(View::Kanban)], active: 0, pinned: 0 },
         pos: egui::pos2(300.0, 120.0),
         size: egui::vec2(440.0, 320.0),
     });
@@ -529,4 +529,18 @@ fn renders_the_revucraft_light_theme_and_strip() {
     let dir = tempfile::tempdir().unwrap();
     let mut shell = sample(dir.path());
     render(&mut shell, "themes-light", egui::vec2(1280.0, 800.0), false);
+}
+
+#[test]
+fn renders_pinned_and_closable_tabs() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut shell = sample(dir.path());
+    shell.open_tab(Tab::View(View::Calendar));
+    shell.open_tab(Tab::View(View::Kanban));
+    if let Some(leaf) = shell.layout.leaf_mut(shell.focus) {
+        leaf.active = 0;
+        leaf.pin_tab(0);
+    }
+    render(&mut shell, "pinned-tabs", egui::vec2(1100.0, 300.0), false);
+    assert_eq!(shell.layout.leaf(0).map(|l| l.pinned), Some(1), "the Gantt tab is pinned");
 }
