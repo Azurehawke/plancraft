@@ -19,11 +19,14 @@ pub enum Dir {
     Down,
 }
 
-/// A tab group: its tabs, and which one it shows.
+/// A tab group: its tabs, and which one it shows. The first `pinned` tabs are pinned: they sit at
+/// the front of the strip and can't be closed until unpinned.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Leaf {
     pub tabs: Vec<Tab>,
     pub active: usize,
+    #[serde(default)]
+    pub pinned: usize,
 }
 
 /// A pane: one tab group, or two panes divided by a split.
@@ -47,7 +50,7 @@ const DIVIDER: f32 = 6.0;
 
 impl Default for Pane {
     fn default() -> Self {
-        Pane::Leaf(Leaf { tabs: vec![Tab::View(View::Gantt)], active: 0 })
+        Pane::Leaf(Leaf { tabs: vec![Tab::View(View::Gantt)], active: 0, pinned: 0 })
     }
 }
 
@@ -68,9 +71,9 @@ impl Leaf {
         }
     }
 
-    /// Removes tab `k`, keeping `active` on a tab that exists.
+    /// Removes tab `k`, keeping `active` on a tab that exists. A pinned tab can't be removed.
     pub fn remove_tab(&mut self, k: usize) {
-        if k >= self.tabs.len() {
+        if k >= self.tabs.len() || k < self.pinned {
             return;
         }
         self.tabs.remove(k);
@@ -79,6 +82,37 @@ impl Leaf {
         }
         if self.active >= self.tabs.len() {
             self.active = self.tabs.len().saturating_sub(1);
+        }
+    }
+
+    /// Moves tab `from` to position `to`, keeping `active` on the same tab.
+    fn move_tab(&mut self, from: usize, to: usize) {
+        if from >= self.tabs.len() || to >= self.tabs.len() || from == to {
+            return;
+        }
+        let tab = self.tabs.remove(from);
+        self.tabs.insert(to, tab);
+        self.active = if self.active == from {
+            to
+        } else {
+            let after_remove = if self.active > from { self.active - 1 } else { self.active };
+            if after_remove >= to { after_remove + 1 } else { after_remove }
+        };
+    }
+
+    /// Pins tab `k`: it moves to the end of the pinned tabs at the front of the strip.
+    pub fn pin_tab(&mut self, k: usize) {
+        if k < self.tabs.len() && k >= self.pinned {
+            self.move_tab(k, self.pinned);
+            self.pinned += 1;
+        }
+    }
+
+    /// Unpins tab `k`: it moves to just after the tabs that stay pinned.
+    pub fn unpin_tab(&mut self, k: usize) {
+        if k < self.pinned {
+            self.pinned -= 1;
+            self.move_tab(k, self.pinned);
         }
     }
 }
@@ -347,6 +381,9 @@ fn split_rects(area: Rect, dir: Dir, ratio: f32) -> (Rect, Rect, Rect) {
 
 /// Closes tab `k` of a leaf. A floating pane with no tabs left closes itself.
 fn close_tab(slot: Slot, leaf: &mut Leaf, k: usize, ops: &mut Vec<Op>) {
+    if k < leaf.pinned {
+        return;
+    }
     match slot {
         Slot::Docked { index, .. } => ops.push(Op::CloseTab(index, k)),
         Slot::Floating(id) => {
@@ -371,7 +408,8 @@ fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Sl
         ui.horizontal(|ui| {
             let tabs = leaf.tabs.clone();
             for (k, tab) in tabs.iter().enumerate() {
-                let (resp, closed) = tab_button(ui, t, &tab_title(tab), k == leaf.active, true);
+                let pinned = k < leaf.pinned;
+                let (resp, closed) = tab_button(ui, t, &tab_title(tab), k == leaf.active, pinned);
                 if resp.clicked() {
                     leaf.active = k;
                     if let Slot::Docked { index, .. } = slot {
@@ -408,7 +446,16 @@ fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Sl
                             }
                         }
                     }
-                    if ui.button("Close tab").clicked() {
+                    if ui.button(if pinned { "Unpin tab" } else { "Pin tab" }).clicked() {
+                        if pinned {
+                            leaf.unpin_tab(k);
+                        } else {
+                            leaf.pin_tab(k);
+                        }
+                        ui.close();
+                    }
+                    let close = ui.add_enabled(!pinned, egui::Button::new("Close tab"));
+                    if close.on_disabled_hover_text("Unpin the tab to close it").clicked() {
                         close_tab(slot, leaf, k, ops);
                         ui.close();
                     }
@@ -469,5 +516,48 @@ fn leaf_ui(shell: &mut Shell, ui: &mut Ui, t: &Tokens, leaf: &mut Leaf, slot: Sl
             }
             None => shell.start_page(ui, t),
         },
+    }
+}
+
+#[cfg(test)]
+mod pin_tests {
+    use super::*;
+
+    fn leaf(tabs: &[View], active: usize) -> Leaf {
+        Leaf { tabs: tabs.iter().map(|v| Tab::View(*v)).collect(), active, pinned: 0 }
+    }
+
+    #[test]
+    fn pinning_moves_the_tab_to_the_front_and_keeps_the_active_tab() {
+        let mut l = leaf(&[View::Gantt, View::Calendar, View::Kanban], 2);
+        l.pin_tab(1);
+        assert_eq!(l.pinned, 1);
+        assert_eq!(l.tabs[0], Tab::View(View::Calendar));
+        assert_eq!(l.tab(), Tab::View(View::Kanban));
+        assert_eq!(l.active, 2);
+    }
+
+    #[test]
+    fn a_pinned_tab_cannot_be_removed_until_unpinned() {
+        let mut l = leaf(&[View::Gantt, View::Calendar], 0);
+        l.pin_tab(0);
+        l.remove_tab(0);
+        assert_eq!(l.tabs.len(), 2);
+        l.unpin_tab(0);
+        assert_eq!(l.pinned, 0);
+        l.remove_tab(0);
+        assert_eq!(l.tabs, vec![Tab::View(View::Calendar)]);
+    }
+
+    #[test]
+    fn unpinning_places_the_tab_after_the_pinned_ones() {
+        let mut l = leaf(&[View::Gantt, View::Calendar, View::Kanban], 0);
+        l.pin_tab(1);
+        l.pin_tab(2);
+        assert_eq!(l.pinned, 2);
+        l.unpin_tab(0);
+        assert_eq!(l.pinned, 1);
+        assert_eq!(l.tabs[0], Tab::View(View::Kanban));
+        assert_eq!(l.tab(), Tab::View(View::Gantt));
     }
 }
