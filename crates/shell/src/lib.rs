@@ -345,6 +345,24 @@ impl Shell {
     }
 
     /// The tab the focused pane shows.
+    /// Shows a view tab in the focused pane: switches to it there, or adds it to the pane.
+    pub fn show_tab(&mut self, tab: Tab) {
+        let found = (0..self.layout.leaf_count()).find(|&i| self.layout.leaf(i).is_some_and(|l| l.tabs.contains(&tab)));
+        if let Some(i) = found {
+            self.focus = i;
+        }
+        if let Some(leaf) = self.layout.leaf_mut(self.focus) {
+            match leaf.tabs.iter().position(|t| *t == tab) {
+                Some(idx) => leaf.active = idx,
+                None => {
+                    leaf.tabs.push(tab);
+                    leaf.active = leaf.tabs.len() - 1;
+                }
+            }
+        }
+        self.save_prefs();
+    }
+
     pub fn focused_tab(&self) -> Tab {
         self.layout.leaf(self.focus).map(|l| l.tab()).unwrap_or(Tab::View(View::Gantt))
     }
@@ -493,8 +511,8 @@ impl Shell {
     /// Draws the shell. `spreadsheet` draws the spreadsheet tab's contents into the given Ui.
     pub fn show(&mut self, ui: &mut Ui, spreadsheet: &mut dyn FnMut(&mut Ui)) {
         let t = crate::theme::tokens(ui.ctx());
+        self.title_bar(ui, &t);
         self.menu_bar(ui, &t);
-        self.tab_bar(ui, &t);
         if self.active_project().is_some() {
             self.mode_bar(ui, &t);
         }
@@ -514,13 +532,39 @@ impl Shell {
         }
     }
 
-    /// The menu bar across the top: File and View, each running the same actions as the ribbon.
-    fn menu_bar(&mut self, ui: &mut Ui, t: &Tokens) {
-        let has_project = self.active_project().is_some();
-        egui::Panel::top("pc_menu").exact_size(30.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(8, 2))).show(
+    /// The title bar along the top: the project's title and the app's name.
+    fn title_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        let title = self
+            .active_project()
+            .and_then(|i| self.projects.get(i))
+            .map(|p| format!("{} - PlanCraft", p.title()))
+            .unwrap_or_else(|| "PlanCraft".to_string());
+        egui::Panel::top("pc_title").exact_size(24.0).frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin::symmetric(10, 2))).show(
             ui,
             |ui| {
                 ui.horizontal_centered(|ui| {
+                    ui.label(RichText::new(title).size(12.0).color(t.text_dim));
+                });
+            },
+        );
+    }
+
+    /// The menu row: home (the launch page), the menus, the view tabs of the open project, and at
+    /// the right the search box, undo and redo (greyed out until they exist), and save.
+    fn menu_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        let has_project = self.active_project().is_some();
+        egui::Panel::top("pc_menu").exact_size(32.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(8, 2))).show(
+            ui,
+            |ui| {
+                ui.horizontal_centered(|ui| {
+                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Home, false)
+                        .on_hover_text("Home: the launch page, to open or create projects")
+                        .clicked()
+                    {
+                        self.flush_document();
+                        self.current = None;
+                        self.documents = documents::DocState::default();
+                    }
                     ui.menu_button("File", |ui| {
                         if ui.button("New project…").clicked() {
                             self.start_wizard();
@@ -551,16 +595,13 @@ impl Shell {
                             }
                             ui.close();
                         }
-                        ui.separator();
                         if ui.add_enabled(pi.is_some(), egui::Button::new("Delete")).clicked() {
                             if let Some(pi) = pi {
                                 ribbon::delete_selected(self, pi);
                             }
                             ui.close();
                         }
-                    });
-                    ui.menu_button("Task", |ui| {
-                        let pi = self.active_project();
+                        ui.separator();
                         if ui.add_enabled(pi.is_some(), egui::Button::new("New task")).clicked() {
                             if let Some(pi) = pi {
                                 ribbon::add_task(self, pi, false);
@@ -573,7 +614,6 @@ impl Shell {
                             }
                             ui.close();
                         }
-                        ui.separator();
                         if ui.add_enabled(pi.is_some(), egui::Button::new("Link tasks")).clicked() {
                             if let Some(pi) = pi {
                                 ribbon::link_selected(self, pi, false);
@@ -640,6 +680,37 @@ impl Shell {
                             ui.close();
                         }
                     });
+                    if has_project {
+                        ui.add_space(8.0);
+                        let views = [
+                            ("Documents", Tab::Documents),
+                            ("GANTT", Tab::View(View::Gantt)),
+                            ("Kanban", Tab::View(View::Kanban)),
+                            ("Spreadsheet", Tab::Spreadsheet),
+                            ("Calendar", Tab::View(View::Calendar)),
+                        ];
+                        for (label, tab) in views {
+                            let on = self.focused_tab() == tab;
+                            if ui.selectable_label(on, label).clicked() {
+                                self.show_tab(tab);
+                            }
+                        }
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Save, false)
+                            .on_hover_text(if self.documents.dirty_since.is_some() { "Save the open document" } else { "Everything is saved" })
+                            .clicked()
+                        {
+                            self.flush_document();
+                        }
+                        ui.add_enabled(false, egui::Button::new("Redo")).on_disabled_hover_text("Redo is not in PlanCraft yet");
+                        ui.add_enabled(false, egui::Button::new("Undo")).on_disabled_hover_text("Undo is not in PlanCraft yet");
+                        let search = ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Search").desired_width(200.0));
+                        if search.changed() || search.gained_focus() {
+                            self.panel = Panel::Search;
+                            self.left_open = true;
+                        }
+                    });
                 });
             },
         );
@@ -659,12 +730,6 @@ impl Shell {
                         self.read_mode = true;
                     }
                     ui.add_space(8.0);
-                    let searching = self.left_open && self.panel == Panel::Search;
-                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Search, searching).on_hover_text("Search the project").clicked() {
-                        self.panel = Panel::Search;
-                        self.left_open = true;
-                        self.save_prefs();
-                    }
                     let unsaved = self.documents.dirty_since.is_some();
                     if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Save, false)
                         .on_hover_text(if unsaved { "Save the open document" } else { "Everything is saved" })
@@ -708,63 +773,6 @@ impl Shell {
                 });
             },
         );
-    }
-
-    fn tab_bar(&mut self, ui: &mut Ui, t: &Tokens) {
-        egui::Panel::top("pc_tabs")
-            .exact_size(34.0)
-            .frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin { left: 6, right: 6, top: 4, bottom: 0 }))
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::SheetList, self.left_open)
-                        .on_hover_text("Show or hide the sidebar")
-                        .clicked()
-                    {
-                        self.left_open = !self.left_open;
-                        self.save_prefs();
-                    }
-                    ui.add_space(4.0);
-                    self.project_picker(ui);
-                    if self.active_project().is_some()
-                        && ui
-                            .add(egui::Button::new(RichText::new("×").size(16.0).color(t.text_dim)).frame(false))
-                            .on_hover_text("Close project (back to the launch page)")
-                            .clicked()
-                    {
-                        self.close_project();
-                    }
-                    ui.add_space(4.0);
-                    if ui.add(egui::Button::new(RichText::new("+").size(16.0)).frame(false)).on_hover_text("New project").clicked() {
-                        self.start_wizard();
-                    }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let on = self.focused_tab() == Tab::Inspector;
-                        if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Info, on)
-                            .on_hover_text("Properties: the selected task, or the project's information")
-                            .clicked()
-                        {
-                            self.open_inspector();
-                        }
-                    });
-                });
-            });
-    }
-
-    /// The project switcher at the left of the tab bar: the projects open in this window.
-    fn project_picker(&mut self, ui: &mut Ui) {
-        let title = self.active_project().and_then(|i| self.projects.get(i)).map(|p| p.title()).unwrap_or_else(|| "No project".to_string());
-        let current = self.active_project();
-        let mut pick: Option<usize> = None;
-        craft_ui::ComboBox::new("pc_project", "Project").selected_text(title).width(220.0).show_ui(ui, |ui| {
-            for (i, p) in self.projects.iter().enumerate() {
-                if ui.selectable_label(current == Some(i), p.title()).clicked() {
-                    pick = Some(i);
-                }
-            }
-        });
-        if let Some(i) = pick {
-            self.focus_project(i);
-        }
     }
 
     fn message_bar(&mut self, ui: &mut Ui, t: &Tokens) {
