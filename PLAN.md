@@ -3,7 +3,7 @@
 > **Status:** Phase 3b (the RevuCraft link, PlanCraft side), v0.7.0: RevuCraft-style chrome (menu bar, Plan/Read mode bar, status bar, right-hand rail), RevuCraft themes with a choice of accent, and tool icon colours. Before it: v0.6.1 (the Start menu shortcut fix, the RevuCraft link in a Settings panel, linked drawings with unlink, punch items as tasks). Calendar and Board views (v0.5.0), Phase 3 (v0.4.0), Phases 0–2 (v0.1.0–v0.3.0).
 > **Repo:** `Azurehawke/plancraft` (created empty; holds only this plan until work starts).
 > **Base:** GridCraft, to be imported from [`Azurehawke/gridcraft`](https://github.com/Azurehawke/gridcraft) (upstream [`storytold/gridcraft`](https://github.com/storytold/gridcraft), MIT OR Apache-2.0).
-> **Last updated:** 2026-11-01
+> **Last updated:** 2026-11-05
 
 ## Goal
 
@@ -11,6 +11,59 @@ A local-first, MS Project-style project management app in Rust, built on GridCra
 It runs locally on every device (Windows laptop, Surface Pro 7s, Galaxy Tab, Pixel phone) and
 saves projects into a shared folder synced by Syncthing. The same project can be edited on several
 devices, including offline, and the edits merge cleanly.
+
+## Suite scope (proposed 2026-11-05)
+
+PlanCraft is the **hub of the Craft suite**; RevuCraft and the other apps are **spokes** (decided
+2026-11-05). The proposals below are not built. Nothing here changes the phases already done.
+
+### Principles
+
+- **Portable.** Everything about a project lives in its folder: documents, budgets, ledger,
+  receipts, mail, forms, messages. Copying or syncing the folder moves the whole project.
+- **Events and messages are files.** Each mail message, receipt, ledger entry, form response or
+  team message is its own file, so Syncthing syncs them without conflicts.
+- **Original templates.** Templates based on PMBOK-style documents use our own structure and
+  wording. Names of general concepts (project charter, risk register) are fine; PMI's text is not
+  copied.
+- **Not legal or tax advice.** The ledger and signatures are tools; compliance rules come from the
+  user's accountant or lawyer.
+
+### Proposed areas
+
+1. **Full project lifecycle.** From initiation to closing: risk, issue, change and stakeholder
+   registers, lessons learned. Phase 5b's document work sits inside this.
+2. **Documents and templates (most immediate; see [Documents and templates](#documents-and-templates)).**
+3. **Budgets and finance.** Budget sheets in GridCraft spreadsheets. A project ledger with a chart
+   of accounts, receipts attached to entries, and a mini accounting model: double-entry, whole
+   cents, an audit trail, and closed periods. Open: does this live here or in CraftStudio's planned
+   financial module?
+4. **Project mail.** Filing and sending, including documents sent from a template and progress
+   report requests for the Gantt. The scope is the project mail described above; a fuller client
+   is a later decision.
+5. **Forms.** Build and send forms (based on PdfCraft's forms), collect responses, and sign for
+   approval. Signature rules depend on identity, consent and audit trail, and must be checked for
+   the jurisdictions used before a signature counts as binding.
+6. **Team messages (deferred).** Start with messages stored as files in the project folder, as
+   with mail. Real-time chat needs a relay server, which is a separate decision and is not in scope
+   now.
+7. **Collaboration.** As built: file sync through Syncthing with Loro (Phase 1). Live presence is
+   not designed.
+8. **RevuCraft.** The link as built (Phase 3b, one-way punch items and status) stays as it is. A
+   two-way exchange, such as completed tasks flowing back from RevuCraft, is a later step. It needs
+   a versioned message format, a rule for which app owns each field, stable IDs across both apps,
+   event files that are safe to apply twice and out of order, and a queue for when either app is
+   closed.
+
+### Immediate focus
+
+Documents and templates come first when work starts. Decisions needed before building:
+
+- **Format:** Markdown templates first (matching the Documents tab), with .docx export later. This
+  replaces the .docx / WordCraft bridge below as the first version, if agreed.
+- **Field syntax** and how repeating tables are marked (open question below).
+- **First template list:** the charter and status report first, then the rest.
+- **Originality check** for each PMBOK-style template, written from our own outline.
 
 ## What GridCraft already provides
 
@@ -311,6 +364,9 @@ The same pattern could later be backported to RevuCraft if it uses one shared fi
 
 ## Documents and templates
 
+> **Open:** the WordCraft / .docx bridge below is the earlier plan. A Markdown-first version is
+> proposed under [Suite scope](#suite-scope-proposed-2026-11-05) and is not yet decided.
+
 PlanCraft owns the project data; documents are typed in WordCraft (which reads and writes
 .docx and already has templates, merge fields and mail merge). .docx is the bridge between them.
 
@@ -475,10 +531,15 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 | 3b ✅ | RevuCraft link: the switch, linked drawings, punch items → tasks (`markups.json`, format 1), status and progress from RevuCraft. Plan → RevuCraft (summary file) comes with the dashboard | A punch item added in RevuCraft shows up as an assigned, dated task on the Gantt |
 | 4 | Resources, assignments, usage views | Resource over-allocation visible |
 | 5 | Baselines and tracking | Tracking Gantt shows slip against baseline |
-| 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
+| 5b | Agile model (backlog, sprints, board, burndown) and document templates (fill + import back). Documents and templates come first when work starts (proposed 2026-11-05) | A sprint planned in PlanCraft, its planning doc typed in WordCraft, stories imported back |
+| 5c | Budgets and finance: budget sheets (GridCraft), chart of accounts, ledger, receipts (scope to be decided: here or CraftStudio) | A month's receipts filed to the project, posted to the ledger, and the budget sheet shows actual against plan |
+| 5d | Lifecycle registers: risks, issues, changes, stakeholders, lessons learned | A risk logged, linked to a task and reported in a status document |
 | 6 | MSPDI import/export; XLSX and PDF reports | A project round-trips through MS Project XML |
 | 7 | Resource leveling, Network Diagram | — |
 | 7b | Project mail (scope to be decided) | A message filed to a project, linked to a task, and visible on another device |
+| 7c | Forms: build, send, collect responses, sign for approval | A form sent by mail, answered, and signed; the response filed to the project |
+| 7d | Team messages as files in the project folder (real-time chat deferred to a server phase) | A message posted on one device appears on another after sync |
+| 7e | RevuCraft two-way exchange (versioned messages, field ownership, stable IDs) | A task completed in RevuCraft is marked done in PlanCraft, and a rescheduled date reaches RevuCraft |
 | 8 | Android build (Craft port conventions: self-update from repo, phone layout) | Runs on the Galaxy Tab and Pixel |
 | 8b | Obsidian plugin (wasm engine, Obsidian-native views, read-only embeds; BRAT) | A project opens in an Obsidian tab and embeds in a note, on desktop and mobile |
 | 9 | Optional: module inside CraftStudio | — |
@@ -515,6 +576,14 @@ separate task graph is wanted), Pimalaya and Stalwart mail crates (see [Project 
 - [ ] Desktop-first, or Android in parallel from the start?
 - [x] RevuCraft: optional link in Settings; PlanCraft stays standalone; punch items become tasks automatically (decided 2026-11-01)
 - [ ] RevuCraft link transport: `markups.json` sidecar or RevuCraft as a Loro "device"; plus the open questions in `docs/revucraft-integration.md`
+- [x] PlanCraft is the hub of the Craft suite; RevuCraft and others are spokes (decided 2026-11-05)
+- [x] Documents and templates are the most immediate suite item; work waits until Steve starts it (decided 2026-11-05)
+- [ ] Documents: Markdown templates first, or .docx through WordCraft? (proposed 2026-11-05: Markdown first)
+- [ ] Originality rule for PMBOK-style templates: our own outline and wording (proposed 2026-11-05)
+- [ ] Finance: does the budget and ledger module live in PlanCraft or CraftStudio?
+- [ ] Forms and signatures: which legal requirements apply (jurisdictions, consent, audit trail)
+- [ ] Team messages: file-based first; is a relay server ever needed?
+- [ ] RevuCraft two-way exchange: message format, field ownership, stable IDs (after the one-way link is confirmed to keep working)
 - [ ] Costs / financial tracking scope (CraftStudio's planned financial module)
 - [ ] Standalone app vs future CraftStudio module
 - [x] Interface layout: Obsidian-style shell (decided 2026-10-27)
