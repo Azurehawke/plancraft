@@ -9,35 +9,70 @@ use serde_json::json;
 
 use crate::{Request, Shell, Tab, View};
 
+/// The Tool Properties bar: the mode switch, the file group, then the tools for the selected view.
+/// Groups that do not apply to the selected view are greyed out, not hidden.
 pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
     egui::Panel::top("pc_ribbon").exact_size(96.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(8, 4))).show(
         ui,
         |ui| {
             egui::ScrollArea::horizontal().id_salt("pc_ribbon_scroll").show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    let Some(pi) = shell.active_project() else {
-                        file_group(shell, ui, t);
-                        return;
-                    };
+                    mode_group(shell, ui, t);
+                    sep(ui, t);
                     file_group(shell, ui, t);
                     sep(ui, t);
-                    if shell.focused_tab() == Tab::Documents {
-                        document_group(shell, ui, t, pi);
+                    let Some(pi) = shell.active_project() else { return };
+                    let focus = shell.focused_tab();
+                    let editing = !shell.read_mode;
+                    if focus == Tab::Documents {
+                        docs_tools(shell, ui, t, pi, editing);
                         sep(ui, t);
-                        format_group(shell, ui, t);
-                        return;
+                        plan_tools(shell, ui, t, pi, false);
+                    } else {
+                        plan_tools(shell, ui, t, pi, editing && matches!(focus, Tab::View(_)));
+                        sep(ui, t);
+                        docs_tools(shell, ui, t, pi, false);
                     }
-                    task_group(shell, ui, t, pi);
-                    sep(ui, t);
-                    schedule_group(shell, ui, t, pi);
-                    sep(ui, t);
-                    view_group(shell, ui, t, pi);
-                    sep(ui, t);
-                    revucraft_group(shell, ui, t);
                 });
             });
         },
     );
+}
+
+/// The document tools: the document group and the format group.
+fn docs_tools(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, enabled: bool) {
+    ui.add_enabled_ui(enabled, |ui| {
+        document_group(shell, ui, t, pi);
+        sep(ui, t);
+        format_group(shell, ui, t);
+    });
+}
+
+/// The plan tools: task, schedule, view and the RevuCraft group.
+fn plan_tools(shell: &mut Shell, ui: &mut Ui, t: &Tokens, pi: usize, enabled: bool) {
+    ui.add_enabled_ui(enabled, |ui| {
+        task_group(shell, ui, t, pi);
+        sep(ui, t);
+        schedule_group(shell, ui, t, pi);
+        sep(ui, t);
+        view_group(shell, ui, t, pi);
+        sep(ui, t);
+        revucraft_group(shell, ui, t);
+    });
+}
+
+/// The Plan / Read switch: Read greys the editing tools and leaves the window for reading.
+fn mode_group(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    group(ui, t, "Mode", |ui| {
+        ui.vertical(|ui| {
+            if ui.selectable_label(!shell.read_mode, "Plan").on_hover_text("Edit the plan, with the tools").clicked() {
+                shell.read_mode = false;
+            }
+            if ui.selectable_label(shell.read_mode, "Read").on_hover_text("Read the plan: the editing tools are greyed out").clicked() {
+                shell.read_mode = true;
+            }
+        });
+    });
 }
 
 fn sep(ui: &mut Ui, t: &Tokens) {
