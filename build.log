@@ -1,0 +1,44 @@
+PlanCraft 0.8.0 for Windows x64 (x86_64-pc-windows-msvc)
+==> cargo build (x86_64-pc-windows-msvc)
+warning: patch `egui_demo_lib v0.37.0 (https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a#6d518fc7)` was not used in the crate graph
+warning: patch `egui_extras v0.37.0 (https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a#6d518fc7)` was not used in the crate graph
+warning: patch `egui_inspection v0.37.0 (https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a#6d518fc7)` was not used in the crate graph
+warning: patch `egui_system_font_provider v0.37.0 (https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a#6d518fc7)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+   Compiling gridcraft-core v0.8.0 (D:\a\plancraft\plancraft\crates\core)
+   Compiling plancraft-project v0.8.0 (D:\a\plancraft\plancraft\crates\project)
+   Compiling gridcraft-pdf v0.8.0 (D:\a\plancraft\plancraft\crates\pdf)
+   Compiling gridcraft-ui-egui v0.8.0 (D:\a\plancraft\plancraft\crates\ui-egui)
+   Compiling gridcraft-formula v0.8.0 (D:\a\plancraft\plancraft\crates\formula)
+   Compiling gridcraft-functions v0.8.0 (D:\a\plancraft\plancraft\crates\functions)
+   Compiling gridcraft-numfmt v0.8.0 (D:\a\plancraft\plancraft\crates\numfmt)
+   Compiling gridcraft-model v0.8.0 (D:\a\plancraft\plancraft\crates\model)
+   Compiling plancraft-project-sync v0.8.0 (D:\a\plancraft\plancraft\crates\project-sync)
+   Compiling plancraft-schedule v0.8.0 (D:\a\plancraft\plancraft\crates\schedule)
+   Compiling plancraft v0.8.0 (D:\a\plancraft\plancraft\apps\plancraft)
+   Compiling plancraft-commands v0.8.0 (D:\a\plancraft\plancraft\crates\commands)
+   Compiling gridcraft-calc v0.8.0 (D:\a\plancraft\plancraft\crates\calc)
+   Compiling gridcraft-chart v0.8.0 (D:\a\plancraft\plancraft\crates\chart)
+   Compiling gridcraft-xlsx v0.8.0 (D:\a\plancraft\plancraft\crates\xlsx)
+   Compiling gridcraft-engine v0.8.0 (D:\a\plancraft\plancraft\crates\engine)
+   Compiling gridcraft-mcp v0.8.0 (D:\a\plancraft\plancraft\crates\mcp)
+   Compiling plancraft-shell v0.8.0 (D:\a\plancraft\plancraft\crates\shell)
+   Compiling plancraft-cli v0.8.0 (D:\a\plancraft\plancraft\apps\plancraft-cli)
+    Finished `release` profile [optimized] target(s) in 3m 35s
+ok plancraft.exe: x64, PE subsystem 2
+ok plancraft-cli.exe: x64, PE subsystem 3
+::warning::Windows signing secrets not set (WINDOWS_CERTIFICATE or AZURE_*): leaving unsigned: D:\a\plancraft\plancraft\target\windows-package\x64\plancraft.exe, D:\a\plancraft\plancraft\target\windows-package\x64\plancraft-cli.exe
+==> wix build
+PASS PlanCraft: 24 scope cases, folder preservation, action sequencing and registry contract. No installation performed.
+::warning::Windows signing secrets not set (WINDOWS_CERTIFICATE or AZURE_*): leaving unsigned: D:\a\plancraft\plancraft\dist\release\plancraft-0.8.0-windows-x64.msi
+==> plancraft-cli --version
+plancraft-cli 0.8.0
+
+Name                                       Length
+----                                       ------
+plancraft-0.8.0-windows-x64.msi          20193280
+plancraft-0.8.0-windows-x64-portable.zip 26607084
+
