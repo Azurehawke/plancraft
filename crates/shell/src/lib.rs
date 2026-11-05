@@ -513,14 +513,9 @@ impl Shell {
         let t = crate::theme::tokens(ui.ctx());
         self.title_bar(ui, &t);
         self.menu_bar(ui, &t);
-        if self.active_project().is_some() {
-            self.mode_bar(ui, &t);
-        }
         theme::remember(ui.ctx(), self.prefs.accent, self.prefs.icon_color);
         let on_sheet = self.focused_tab() == Tab::Spreadsheet;
-        if !on_sheet && !self.read_mode {
-            ribbon::show(self, ui, &t);
-        }
+        ribbon::show(self, ui, &t);
         self.message_bar(ui, &t);
         self.status_bar(ui, &t);
         sidebar::show(self, ui, &t);
@@ -711,32 +706,6 @@ impl Shell {
                             self.left_open = true;
                         }
                     });
-                });
-            },
-        );
-    }
-
-    /// The mode bar under the tabs: Plan (edit, with the ribbon) or Read (the ribbon steps away),
-    /// and Search, which opens the sidebar's Search panel.
-    fn mode_bar(&mut self, ui: &mut Ui, t: &Tokens) {
-        egui::Panel::top("pc_mode").exact_size(40.0).frame(egui::Frame::NONE.fill(t.tab_bar).inner_margin(egui::Margin::symmetric(8, 4))).show(
-            ui,
-            |ui| {
-                ui.horizontal_centered(|ui| {
-                    if ui.selectable_label(!self.read_mode, "Plan").on_hover_text("Edit the plan, with the ribbon").clicked() {
-                        self.read_mode = false;
-                    }
-                    if ui.selectable_label(self.read_mode, "Read").on_hover_text("Read the plan with the ribbon hidden").clicked() {
-                        self.read_mode = true;
-                    }
-                    ui.add_space(8.0);
-                    let unsaved = self.documents.dirty_since.is_some();
-                    if icon_button(ui, t, gridcraft_ui_egui::icons::Icon::Save, false)
-                        .on_hover_text(if unsaved { "Save the open document" } else { "Everything is saved" })
-                        .clicked()
-                    {
-                        self.flush_document();
-                    }
                 });
             },
         );
