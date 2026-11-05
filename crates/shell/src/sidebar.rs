@@ -1,12 +1,13 @@
-//! The left sidebar: an icon rail that picks a panel (Explorer, Search, Bookmarks, Outline,
-//! Filters, Recent, Sync), as in Obsidian. The rail stays when the panel is collapsed.
+//! The left sidebar, laid out as RevuCraft's: the tool options for the view in front (they change
+//! with the view tab), then a row of icons (the panels, then Properties, Documents and Calendar),
+//! then the chosen panel. Horizontal dividers separate the three.
 
 use egui::{RichText, Ui};
 use gridcraft_ui_egui::icons::{self, Icon};
 use gridcraft_ui_egui::theme::Tokens;
 use plancraft_project::TaskId;
 
-use crate::{Bookmark, Filter, Panel, Request, Shell, section};
+use crate::{Bookmark, Filter, Panel, Request, Shell, Tab, View, section};
 
 fn icon(p: Panel) -> Icon {
     match p {
@@ -21,48 +22,39 @@ fn icon(p: Panel) -> Icon {
     }
 }
 
-pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
-    egui::Panel::right("pc_rail").exact_size(48.0).frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(4, 8))).show(
-        ui,
-        |ui| {
-            ui.vertical_centered(|ui| {
-                for p in Panel::ALL {
-                    let on = shell.left_open && shell.panel == p;
-                    let (rect, resp) = ui.allocate_exact_size(egui::vec2(30.0, 30.0), egui::Sense::click());
-                    if on {
-                        ui.painter().rect_filled(rect, 6.0, t.pressed);
-                    } else if resp.hovered() {
-                        ui.painter().rect_filled(rect, 6.0, t.hover);
-                    }
-                    icons::paint(
-                        ui.painter(),
-                        egui::Rect::from_center_size(rect.center(), egui::vec2(18.0, 18.0)),
-                        icon(p),
-                        crate::theme::tool_icon(ui.ctx()),
-                    );
-                    if resp.on_hover_text(p.label()).clicked() {
-                        if on {
-                            shell.left_open = false;
-                        } else {
-                            shell.left_open = true;
-                            shell.panel = p;
-                        }
-                        shell.save_prefs();
-                    }
-                    ui.add_space(4.0);
-                }
-            });
-        },
-    );
-    if !shell.left_open {
-        return;
+/// A 30 px icon button in the icon row, lit when `on`. Returns true when clicked.
+fn icon_button(ui: &mut Ui, t: &Tokens, icon: Icon, label: &str, on: bool) -> bool {
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(30.0, 30.0), egui::Sense::click());
+    if on {
+        ui.painter().rect_filled(rect, 6.0, t.pressed);
+    } else if resp.hovered() {
+        ui.painter().rect_filled(rect, 6.0, t.hover);
     }
-    egui::Panel::right("pc_sidebar")
+    icons::paint(ui.painter(), egui::Rect::from_center_size(rect.center(), egui::vec2(18.0, 18.0)), icon, crate::theme::tool_icon(ui.ctx()));
+    resp.on_hover_text(label).clicked()
+}
+
+/// A horizontal divider between the sidebar's sections.
+fn divider(ui: &mut Ui) {
+    ui.add_space(4.0);
+    ui.separator();
+    ui.add_space(4.0);
+}
+
+pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    egui::Panel::left("pc_sidebar")
         .default_size(250.0)
-        .size_range(180.0..=480.0)
+        .size_range(200.0..=480.0)
         .resizable(true)
         .frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(10, 8)))
         .show(ui, |ui| {
+            tool_options(shell, ui, t);
+            divider(ui);
+            icon_row(shell, ui, t);
+            if !shell.left_open {
+                return;
+            }
+            divider(ui);
             ui.label(RichText::new(shell.panel.label()).strong().color(t.text));
             ui.separator();
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| match shell.panel {
@@ -76,6 +68,51 @@ pub(crate) fn show(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
                 Panel::Settings => settings(shell, ui, t),
             });
         });
+}
+
+/// The tool options for the view in front: they change with the view tab, and the tools that
+/// don't apply are greyed in the ribbon.
+fn tool_options(shell: &Shell, ui: &mut Ui, t: &Tokens) {
+    let (title, note) = match shell.focused_tab() {
+        Tab::Documents => ("Document options", "Font, size and alignment will appear here."),
+        Tab::View(View::Gantt) => ("Gantt options", "Refining tools for the schedule will appear here."),
+        Tab::View(view) => (view.label(), "No options for this view yet."),
+        Tab::Spreadsheet => ("Spreadsheet", "The spreadsheet's tools are in the ribbon."),
+        Tab::Inspector => ("Properties", "The selected task's details are in the tab."),
+    };
+    ui.label(RichText::new(title).strong().color(t.text));
+    ui.label(RichText::new(note).color(t.text_dim));
+}
+
+/// The icon row: the panels, then Properties, Documents and Calendar (each shows its tab).
+fn icon_row(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
+    ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
+    ui.horizontal_wrapped(|ui| {
+        for p in Panel::ALL {
+            let on = shell.left_open && shell.panel == p;
+            if icon_button(ui, t, icon(p), p.label(), on) {
+                if on {
+                    shell.left_open = false;
+                } else {
+                    shell.left_open = true;
+                    shell.panel = p;
+                }
+                shell.save_prefs();
+            }
+        }
+    });
+    let focused = shell.focused_tab();
+    ui.horizontal(|ui| {
+        if icon_button(ui, t, Icon::Info, "Properties", focused == Tab::Inspector) {
+            shell.open_inspector();
+        }
+        if icon_button(ui, t, Icon::Book, "Documents", focused == Tab::Documents) {
+            shell.show_tab(Tab::Documents);
+        }
+        if icon_button(ui, t, Icon::Calendar, "Calendar", focused == Tab::View(View::Calendar)) {
+            shell.show_tab(Tab::View(View::Calendar));
+        }
+    });
 }
 
 fn explorer(shell: &mut Shell, ui: &mut Ui, t: &Tokens) {
