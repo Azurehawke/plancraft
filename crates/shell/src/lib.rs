@@ -311,6 +311,11 @@ impl Shell {
         self.save_prefs();
     }
 
+    /// Saves the open Markdown document, so nothing is lost when the app closes.
+    pub fn save_open_work(&mut self) {
+        self.flush_document();
+    }
+
     /// Shows the Properties tab: focuses one that is open, or adds one to the focused pane.
     pub fn open_inspector(&mut self) {
         self.open_tab(Tab::Inspector);
