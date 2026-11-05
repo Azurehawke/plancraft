@@ -52,6 +52,11 @@ impl eframe::App for App {
         self.0.logic(ctx);
         self.1.logic(&mut self.0, ctx);
         shell_logic(&mut self.2, &mut self.0, ctx);
+        // Help's Update (or the start-up prompt's) opened the release page: save, then close so the installer can replace PlanCraft.
+        if gridcraft_ui_egui::take_update_quit(&mut self.0) {
+            self.2.save_open_work();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         if ctx.input(|input| input.viewport().close_requested()) && self.0.printing.busy() {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
